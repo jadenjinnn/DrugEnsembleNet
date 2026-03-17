@@ -358,7 +358,7 @@ def gather_run_configs():
 
     run_name = "_".join(
         input(
-            "What is the name of the run? (This is typically the name of the dataset) "
+            "What is the name of the run? (This is the name of the folder that your results will be outputted to) "
         ).split()
     )
     cell_lines = input(
