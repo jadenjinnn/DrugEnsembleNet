@@ -1,26 +1,23 @@
-import pandas as pd
-
-import requests
-from bs4 import BeautifulSoup
+import cProfile
 import ftplib
-import urllib
-import re
-from datetime import datetime, timezone, timedelta
-from dateutil.parser import parse as parsedate
-import os
 import gzip
 import json
-import fastobo
-import inflection
+import logging
+import os
+import pstats
+import re
+import urllib
+from datetime import datetime, timezone
+from functools import wraps
 from pathlib import Path
 
+import fastobo
+import inflection
+import pandas as pd
 import ray
-
-import cProfile
-import pstats
-from functools import wraps
-
-import logging
+import requests
+from bs4 import BeautifulSoup
+from dateutil.parser import parse as parsedate
 
 logging.basicConfig(level=logging.INFO)
 logging_name = "utils"
@@ -107,8 +104,7 @@ def download(
                 update = True
     elif url.startswith("http") and post:
         log.info("Downloading data for %s" % folder)
-        r = requests.post(url, allow_redirects=True,
-                          data=data_to_send)  # , timeout=30
+        r = requests.post(url, allow_redirects=True, data=data_to_send)  # , timeout=30
         r.raise_for_status()
         cd = r.headers.get("Content-Disposition")
         if cd:
@@ -184,10 +180,10 @@ def integrate_dataframes(
     dataframes, common_columns=None, columns_to_join=["source"], separator="|"
 ):
     """
-        Integrates the provided DataFrames
+    Integrates the provided DataFrames
 
-        Returns a DataFrame merged on 'common_columns'
-        and joins the content of 'columns_to_join'
+    Returns a DataFrame merged on 'common_columns'
+    and joins the content of 'columns_to_join'
     """
     if not isinstance(dataframes, (list, set, tuple)):
         raise TypeError("'dataframes' must be an iterable object")
@@ -208,8 +204,7 @@ def integrate_dataframes(
     else:
         cm = set(common_columns).intersection(columns_to_join)
         if len(cm) > 1:
-            raise ValueError(
-                f"{cm} are both in 'common_columns' and 'columns_to_join'")
+            raise ValueError(f"{cm} are both in 'common_columns' and 'columns_to_join'")
         elif len(cm) == 1:
             raise ValueError(
                 f"{list(cm)[0]} is both in 'common_columns' and 'columns_to_join'"
@@ -292,15 +287,14 @@ def get_version(filepath, marker=None, ref_date=None, retrieved_version=None):
 
 class Singleton(type):
     """
-        Used as metaclass prevents to create multiple instances of the same class
+    Used as metaclass prevents to create multiple instances of the same class
     """
 
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(
-                Singleton, cls).__call__(*args, **kwargs)
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
 
@@ -374,7 +368,6 @@ class File:
                     log.error("Unable to get the file")
                     raise
         else:  # update = True
-
             try:
                 (
                     self.__filepath,
@@ -427,8 +420,7 @@ class File:
         if first_time:
             log.info(f"Reading data in {self.__filename} for {self.__folder}")
         else:
-            log.info(
-                f"Reading data in cleaned-{self.__filename} for {self.__folder}")
+            log.info(f"Reading data in cleaned-{self.__filename} for {self.__folder}")
         if self.__custom_read_function:  # for handling specific not implemented formats
             self.__content = self.__custom_read_function(self.__filepath)
         elif self.__filename.endswith(".obo"):
@@ -456,8 +448,7 @@ class File:
                 index_col=self.__index_col,
             )
             if self.__rename_columns:
-                self.__content = self.__content.rename(
-                    columns=self.__rename_columns)
+                self.__content = self.__content.rename(columns=self.__rename_columns)
             if self.__query:
                 self.__content = self.__content.query(self.__query)
             if self.__final_columns:
@@ -692,8 +683,7 @@ class Database:
             if self.__requirements != [None]:
                 for requirement in self.__requirements:
                     try:
-                        log.debug(
-                            f"Loading requirement: {requirement.__name__}")
+                        log.debug(f"Loading requirement: {requirement.__name__}")
                         setattr(
                             self.__class__,
                             f"_{self.__class__.__name__}__{requirement.__name__}",
@@ -729,16 +719,16 @@ class Database:
     @property
     def update(self):
         """
-            Returns the input argument 'update'
-            It should not be used, check the 'updated' property
+        Returns the input argument 'update'
+        It should not be used, check the 'updated' property
         """
         return self.__update
 
     @update.setter
     def _update(self, value):
         """
-            Changes the value of the input argument 'update'
-            It should not be used
+        Changes the value of the input argument 'update'
+        It should not be used
         """
         log.warning("You are changing the 'update' input argument, beware!")
         self.__update = value
@@ -802,13 +792,13 @@ def tqdm4ray(ids, *args, **kwargs):
 def get_best_match(query, choices, score_cutoff=75):
     from thefuzz import process as thefuzzprocess
 
-    best_match = thefuzzprocess.extractOne(
-        query, choices, score_cutoff=score_cutoff)
+    best_match = thefuzzprocess.extractOne(query, choices, score_cutoff=score_cutoff)
 
     if best_match:
         return best_match[0]
     else:
         return best_match
+
 
 def get_genes_from_directory(directory):
     from databases import NCBI
@@ -820,7 +810,9 @@ def get_genes_from_directory(directory):
     dir_path = Path(directory)
 
     if not dir_path.exists() or not dir_path.is_dir() or not any(dir_path.iterdir()):
-        log.error("Provided gene files directory is not a directory or does not exist or is empty")
+        log.error(
+            "Provided gene files directory is not a directory or does not exist or is empty"
+        )
 
     gene_files = {}
 
@@ -841,6 +833,7 @@ def get_genes_from_directory(directory):
 
     return gene_files
 
+
 def get_genes_from_directory_updown(directory):
     from databases import NCBI
 
@@ -851,7 +844,9 @@ def get_genes_from_directory_updown(directory):
     dir_path = Path(directory)
 
     if not dir_path.exists() or not dir_path.is_dir() or not any(dir_path.iterdir()):
-        log.error("Provided gene files directory is not a directory or does not exist or is empty")
+        log.error(
+            "Provided gene files directory is not a directory or does not exist or is empty"
+        )
 
     gene_files = {}
 
@@ -870,7 +865,6 @@ def get_genes_from_directory_updown(directory):
                     up_genes.add(gene)
                 elif fc < -0.25:
                     down_genes.add(gene)
-
 
         up_genes_dict = {
             ncbi.check_symbol(gene): ncbi.get_id_by_symbol(gene)

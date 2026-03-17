@@ -1,0 +1,191 @@
+ID1	ID2	Name1	Name2	Separation	ATC_Codes1	ATC_Codes2	Reported_Interaction	Reported_Combination
+DB07863	DB01092	2-chloro-5-nitro-N-phenylbenzamide	Ouabain	1.0		C	False	False
+DB07594	DB01092	CCT-018159	Ouabain	1.0		C	False	False
+DB05134	DB01092	Tanespimycin	Ouabain	1.0		C	False	False
+DB12695	DB01092	Phenethyl Isothiocyanate	Ouabain	0.8500000000000001		C	False	False
+DB04216	DB01092	Quercetin	Ouabain	0.8407407407407408		C	False	False
+DB08175	DB01092	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	Ouabain	0.8333333333333335		C	False	False
+DB02424	DB01092	Geldanamycin	Ouabain	0.8333333333333335		C	False	False
+DB00608	DB01092	Chloroquine	Ouabain	0.7777777777777777	P	C	False	False
+DB01782	DB01092	Pyrazolanthrone	Ouabain	0.75		C	False	False
+DB01782	DB07863	Pyrazolanthrone	2-chloro-5-nitro-N-phenylbenzamide	0.75			False	False
+DB07863	DB12695	2-chloro-5-nitro-N-phenylbenzamide	Phenethyl Isothiocyanate	0.7458333333333333			False	False
+DB01088	DB01092	Iloprost	Ouabain	0.7159090909090908	B	C	False	False
+DB01645	DB01092	Genistein	Ouabain	0.6730769230769231		C	False	False
+DB01229	DB01092	Paclitaxel	Ouabain	0.6666666666666665	L	C	False	False
+DB01248	DB01092	Docetaxel	Ouabain	0.6666666666666665	L	C	False	False
+DB08175	DB12695	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	Phenethyl Isothiocyanate	0.6624999999999999			False	False
+DB01092	DB13954	Ouabain	Estradiol cypionate	0.6461538461538463	C		False	False
+DB01088	DB08175	Iloprost	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	0.6401515151515151	B		False	False
+DB05134	DB01088	Tanespimycin	Iloprost	0.625		B	False	False
+DB01088	DB07594	Iloprost	CCT-018159	0.625	B		False	False
+DB00783	DB01092	Estradiol	Ouabain	0.5857142857142856	G	C	False	False
+DB01782	DB08175	Pyrazolanthrone	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	0.5833333333333335			False	False
+DB07863	DB00608	2-chloro-5-nitro-N-phenylbenzamide	Chloroquine	0.5555555555555554		P	False	False
+DB01088	DB01645	Iloprost	Genistein	0.5480769230769231	B		False	False
+DB05134	DB00608	Tanespimycin	Chloroquine	0.5416666666666665		P	False	False
+DB07594	DB00608	CCT-018159	Chloroquine	0.5416666666666665		P	False	False
+DB01088	DB13954	Iloprost	Estradiol cypionate	0.5361111111111112	B		False	False
+DB01088	DB07863	Iloprost	2-chloro-5-nitro-N-phenylbenzamide	0.5340909090909092	B		False	False
+DB01782	DB00608	Pyrazolanthrone	Chloroquine	0.5166666666666666		P	False	False
+DB01088	DB04216	Iloprost	Quercetin	0.503835978835979	B		False	False
+DB08080	DB01092	Latrunculin B	Ouabain	0.5		C	False	False
+DB00615	DB01092	Rifabutin	Ouabain	0.5	J	C	False	False
+DB08080	DB07594	Latrunculin B	CCT-018159	0.5			False	False
+DB08080	DB05134	Latrunculin B	Tanespimycin	0.5			False	False
+DB08080	DB07863	Latrunculin B	2-chloro-5-nitro-N-phenylbenzamide	0.5			False	False
+DB01782	DB12695	Pyrazolanthrone	Phenethyl Isothiocyanate	0.49965986394557826			False	False
+DB01782	DB04216	Pyrazolanthrone	Quercetin	0.4961170848267622			False	False
+DB07594	DB12695	CCT-018159	Phenethyl Isothiocyanate	0.4865248226950354			False	False
+DB05134	DB12695	Tanespimycin	Phenethyl Isothiocyanate	0.4865248226950354			False	False
+DB01088	DB12695	Iloprost	Phenethyl Isothiocyanate	0.4828616352201258	B		False	False
+DB01088	DB00783	Iloprost	Estradiol	0.47738095238095246	B	G	False	False
+DB07863	DB04216	2-chloro-5-nitro-N-phenylbenzamide	Quercetin	0.4740740740740741			False	False
+DB01782	DB01088	Pyrazolanthrone	Iloprost	0.4583333333333335		B	False	False
+DB02424	DB01088	Geldanamycin	Iloprost	0.4583333333333335		B	False	False
+DB08175	DB04216	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	Quercetin	0.4407407407407409			False	False
+DB00975	DB01092	Dipyridamole	Ouabain	0.41666666666666674	B	C	False	False
+DB07863	DB00975	2-chloro-5-nitro-N-phenylbenzamide	Dipyridamole	0.41666666666666674		B	False	False
+DB01782	DB13954	Pyrazolanthrone	Estradiol cypionate	0.40714285714285725			False	False
+DB05134	DB07863	Tanespimycin	2-chloro-5-nitro-N-phenylbenzamide	0.3999999999999999			False	False
+DB07863	DB07594	2-chloro-5-nitro-N-phenylbenzamide	CCT-018159	0.3999999999999999			False	False
+DB05134	DB01645	Tanespimycin	Genistein	0.3897435897435897			False	False
+DB01645	DB07594	Genistein	CCT-018159	0.3897435897435897			False	False
+DB08175	DB00608	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	Chloroquine	0.38888888888888884		P	False	False
+DB05134	DB13954	Tanespimycin	Estradiol cypionate	0.3833333333333333			False	False
+DB07594	DB13954	CCT-018159	Estradiol cypionate	0.3833333333333333			False	False
+DB01088	DB00608	Iloprost	Chloroquine	0.36309523809523814	B	P	True	False
+DB01248	DB01088	Docetaxel	Iloprost	0.36309523809523814	L	B	True	False
+DB01088	DB01229	Iloprost	Paclitaxel	0.36309523809523814	B	L	True	False
+DB01645	DB00975	Genistein	Dipyridamole	0.33974358974358987		B	False	False
+DB02424	DB07863	Geldanamycin	2-chloro-5-nitro-N-phenylbenzamide	0.3333333333333335			False	False
+DB02424	DB08080	Geldanamycin	Latrunculin B	0.3333333333333335			False	False
+DB08080	DB08175	Latrunculin B	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	0.3333333333333335			False	False
+DB00203	DB07863	Sildenafil	2-chloro-5-nitro-N-phenylbenzamide	0.33333333333333326	G		False	False
+DB00203	DB07594	Sildenafil	CCT-018159	0.33333333333333326	G		False	False
+DB07863	DB01229	2-chloro-5-nitro-N-phenylbenzamide	Paclitaxel	0.33333333333333326		L	False	False
+DB00203	DB01092	Sildenafil	Ouabain	0.33333333333333326	G	C	False	False
+DB01248	DB07863	Docetaxel	2-chloro-5-nitro-N-phenylbenzamide	0.33333333333333326	L		False	False
+DB05134	DB00203	Tanespimycin	Sildenafil	0.33333333333333326		G	False	False
+DB04216	DB00608	Quercetin	Chloroquine	0.33164983164983153		P	False	False
+DB00975	DB12695	Dipyridamole	Phenethyl Isothiocyanate	0.33039215686274526	B		False	False
+DB01645	DB00608	Genistein	Chloroquine	0.32658569500674783		P	False	False
+DB01782	DB01645	Pyrazolanthrone	Genistein	0.3201357466063348			False	False
+DB00203	DB01645	Sildenafil	Genistein	0.3189102564102564	G		False	False
+DB08080	DB01088	Latrunculin B	Iloprost	0.30681818181818166		B	False	False
+DB08080	DB13954	Latrunculin B	Estradiol cypionate	0.30000000000000004			False	False
+DB08080	DB01645	Latrunculin B	Genistein	0.29807692307692313			False	False
+DB00203	DB12695	Sildenafil	Phenethyl Isothiocyanate	0.2875000000000001	G		False	False
+DB00203	DB13954	Sildenafil	Estradiol cypionate	0.28717948717948705	G		False	False
+DB08080	DB00783	Latrunculin B	Estradiol	0.2857142857142856		G	False	False
+DB08080	DB00608	Latrunculin B	Chloroquine	0.2777777777777777		P	False	False
+DB02424	DB00608	Geldanamycin	Chloroquine	0.2777777777777777		P	False	False
+DB08080	DB04216	Latrunculin B	Quercetin	0.27407407407407414			False	False
+DB00203	DB04216	Sildenafil	Quercetin	0.2740740740740739	G		False	False
+DB02424	DB12695	Geldanamycin	Phenethyl Isothiocyanate	0.2666666666666666			False	False
+DB01782	DB00783	Pyrazolanthrone	Estradiol	0.2629870129870129		G	False	False
+DB01782	DB07594	Pyrazolanthrone	CCT-018159	0.25			False	False
+DB01248	DB00608	Docetaxel	Chloroquine	0.25	L	P	False	False
+DB08175	DB00975	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	Dipyridamole	0.25		B	False	False
+DB08080	DB01782	Latrunculin B	Pyrazolanthrone	0.25			False	False
+DB01229	DB00608	Paclitaxel	Chloroquine	0.25	L	P	False	False
+DB01782	DB05134	Pyrazolanthrone	Tanespimycin	0.25			False	False
+DB12695	DB00608	Phenethyl Isothiocyanate	Chloroquine	0.24705882352941178		P	False	False
+DB05134	DB08175	Tanespimycin	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	0.2333333333333334			False	False
+DB08175	DB07594	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	CCT-018159	0.2333333333333334			False	False
+DB01782	DB00203	Pyrazolanthrone	Sildenafil	0.22619047619047605		G	False	False
+DB00203	DB00608	Sildenafil	Chloroquine	0.22222222222222232	G	P	False	False
+DB00203	DB00783	Sildenafil	Estradiol	0.21904761904761916	G	G	False	False
+DB00975	DB13954	Dipyridamole	Estradiol cypionate	0.21666666666666679	B		False	False
+DB08080	DB12695	Latrunculin B	Phenethyl Isothiocyanate	0.2041666666666666			False	False
+DB00783	DB00975	Estradiol	Dipyridamole	0.20238095238095255	G	B	True	False
+DB02424	DB01645	Geldanamycin	Genistein	0.1939102564102564			False	False
+DB07863	DB00783	2-chloro-5-nitro-N-phenylbenzamide	Estradiol	0.1857142857142855		G	False	False
+DB01229	DB04216	Paclitaxel	Quercetin	0.18013468013467993	L		False	False
+DB01248	DB04216	Docetaxel	Quercetin	0.18013468013467993	L		False	False
+DB07863	DB01645	2-chloro-5-nitro-N-phenylbenzamide	Genistein	0.17307692307692313			False	False
+DB00975	DB04216	Dipyridamole	Quercetin	0.17255892255892258	B		False	False
+DB00975	DB00608	Dipyridamole	Chloroquine	0.16666666666666696	B	P	False	False
+DB01782	DB00975	Pyrazolanthrone	Dipyridamole	0.16666666666666674		B	False	False
+DB05134	DB00975	Tanespimycin	Dipyridamole	0.16666666666666674		B	False	False
+DB00975	DB07594	Dipyridamole	CCT-018159	0.16666666666666674	B		False	False
+DB02424	DB00203	Geldanamycin	Sildenafil	0.16666666666666652		G	False	False
+DB00203	DB08175	Sildenafil	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	0.16666666666666652	G		False	False
+DB02424	DB01782	Geldanamycin	Pyrazolanthrone	0.15476190476190488			False	False
+DB00608	DB13954	Chloroquine	Estradiol cypionate	0.15416666666666679	P		False	False
+DB01645	DB12695	Genistein	Phenethyl Isothiocyanate	0.14951370468611858			False	False
+DB01248	DB12695	Docetaxel	Phenethyl Isothiocyanate	0.1490196078431374	L		False	False
+DB01229	DB12695	Paclitaxel	Phenethyl Isothiocyanate	0.1490196078431374	L		False	False
+DB05134	DB04216	Tanespimycin	Quercetin	0.14878671775223506			False	False
+DB04216	DB07594	Quercetin	CCT-018159	0.14878671775223506			False	False
+DB01088	DB00203	Iloprost	Sildenafil	0.1401515151515147	B	G	True	False
+DB01088	DB00615	Iloprost	Rifabutin	0.125	B	J	False	False
+DB08175	DB00783	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	Estradiol	0.11904761904761907		G	False	False
+DB05134	DB00783	Tanespimycin	Estradiol	0.11904761904761885		G	False	False
+DB00783	DB07594	Estradiol	CCT-018159	0.11904761904761885	G		False	False
+DB07863	DB13954	2-chloro-5-nitro-N-phenylbenzamide	Estradiol cypionate	0.10769230769230775			False	False
+DB07863	DB00615	2-chloro-5-nitro-N-phenylbenzamide	Rifabutin	0.10000000000000009		J	False	False
+DB02424	DB13954	Geldanamycin	Estradiol cypionate	0.09487179487179476			False	False
+DB01248	DB00975	Docetaxel	Dipyridamole	0.08333333333333348	L	B	True	False
+DB00975	DB01229	Dipyridamole	Paclitaxel	0.08333333333333348	B	L	False	False
+DB00783	DB00608	Estradiol	Chloroquine	0.06776556776556775	G	P	False	False
+DB12695	DB13954	Phenethyl Isothiocyanate	Estradiol cypionate	0.060606060606060774			False	False
+DB01248	DB08175	Docetaxel	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	0.05555555555555558	L		False	False
+DB08175	DB01229	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	Paclitaxel	0.05555555555555558		L	False	False
+DB05134	DB01229	Tanespimycin	Paclitaxel	0.04166666666666652		L	False	False
+DB05134	DB01248	Tanespimycin	Docetaxel	0.04166666666666652		L	False	False
+DB01248	DB07594	Docetaxel	CCT-018159	0.04166666666666652	L		False	False
+DB01229	DB07594	Paclitaxel	CCT-018159	0.04166666666666652	L		False	False
+DB00615	DB00608	Rifabutin	Chloroquine	0.04166666666666652	J	P	False	False
+DB02424	DB00975	Geldanamycin	Dipyridamole	0.02777777777777768		B	False	False
+DB00783	DB12695	Estradiol	Phenethyl Isothiocyanate	0.026739926739926867	G		False	False
+DB08175	DB13954	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	Estradiol cypionate	0.017948717948717885			False	False
+DB08175	DB01645	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	Genistein	0.0064102564102563875			False	False
+DB08080	DB00615	Latrunculin B	Rifabutin	0.0		J	False	False
+DB01248	DB00203	Docetaxel	Sildenafil	0.0	L	G	False	False
+DB00203	DB01229	Sildenafil	Paclitaxel	0.0	G	L	False	False
+DB08080	DB00203	Latrunculin B	Sildenafil	-4.440892098500626e-16		G	False	False
+DB02424	DB04216	Geldanamycin	Quercetin	-0.025925925925925686			False	False
+DB01248	DB01645	Docetaxel	Genistein	-0.04183535762483115	L		False	False
+DB01645	DB01229	Genistein	Paclitaxel	-0.04183535762483115		L	False	False
+DB04216	DB12695	Quercetin	Phenethyl Isothiocyanate	-0.04814814814814805			False	False
+DB08080	DB01248	Latrunculin B	Docetaxel	-0.0555555555555558		L	False	False
+DB08080	DB01229	Latrunculin B	Paclitaxel	-0.0555555555555558		L	False	False
+DB00615	DB12695	Rifabutin	Phenethyl Isothiocyanate	-0.056028368794326155	J		False	False
+DB02424	DB00783	Geldanamycin	Estradiol	-0.08095238095238089		G	False	False
+DB08080	DB00975	Latrunculin B	Dipyridamole	-0.08333333333333304		B	False	False
+DB01782	DB01229	Pyrazolanthrone	Paclitaxel	-0.08333333333333348		L	False	False
+DB01782	DB01248	Pyrazolanthrone	Docetaxel	-0.08333333333333348		L	False	False
+DB01645	DB00615	Genistein	Rifabutin	-0.11025641025641031		J	False	False
+DB01229	DB13954	Paclitaxel	Estradiol cypionate	-0.15833333333333321	L		False	False
+DB01248	DB13954	Docetaxel	Estradiol cypionate	-0.15833333333333321	L		False	False
+DB02424	DB08175	Geldanamycin	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	-0.16666666666666652			False	False
+DB02424	DB01229	Geldanamycin	Paclitaxel	-0.16666666666666674		L	False	False
+DB02424	DB01248	Geldanamycin	Docetaxel	-0.16666666666666674		L	False	False
+DB00203	DB00615	Sildenafil	Rifabutin	-0.16666666666666696	G	J	False	False
+DB04216	DB13954	Quercetin	Estradiol cypionate	-0.1844844844844844			False	False
+DB00615	DB13954	Rifabutin	Estradiol cypionate	-0.19999999999999996	J		False	False
+DB00783	DB01229	Estradiol	Paclitaxel	-0.23992673992673996	G	L	False	False
+DB01248	DB00783	Docetaxel	Estradiol	-0.23992673992673996	L	G	False	False
+DB01088	DB00975	Iloprost	Dipyridamole	-0.24404761904761907	B	B	True	False
+DB01645	DB04216	Genistein	Quercetin	-0.2445156695156694			False	False
+DB00783	DB04216	Estradiol	Quercetin	-0.24805477746654225	G		False	False
+DB01782	DB00615	Pyrazolanthrone	Rifabutin	-0.25		J	False	False
+DB00975	DB00615	Dipyridamole	Rifabutin	-0.33333333333333304	B	J	False	False
+DB00615	DB04216	Rifabutin	Quercetin	-0.35121328224776494	J		False	False
+DB00783	DB00615	Estradiol	Rifabutin	-0.38095238095238115	G	J	False	False
+DB01229	DB00615	Paclitaxel	Rifabutin	-0.4583333333333335	L	J	False	False
+DB01248	DB00615	Docetaxel	Rifabutin	-0.4583333333333335	L	J	False	False
+DB08175	DB00615	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	Rifabutin	-0.46666666666666656		J	False	False
+DB07863	DB08175	2-chloro-5-nitro-N-phenylbenzamide	(2E,4E)-11-METHOXY-3,7,11-TRIMETHYLDODECA-2,4-DIENOIC ACID	-0.4999999999999999			False	False
+DB01645	DB13954	Genistein	Estradiol cypionate	-0.5377926421404682			False	False
+DB00783	DB01645	Estradiol	Genistein	-0.5412087912087911	G		False	False
+DB00203	DB00975	Sildenafil	Dipyridamole	-0.5833333333333333	G	B	True	False
+DB05134	DB00615	Tanespimycin	Rifabutin	-0.75		J	False	False
+DB00615	DB07594	Rifabutin	CCT-018159	-0.75	J		False	False
+DB02424	DB07594	Geldanamycin	CCT-018159	-0.7666666666666665			False	False
+DB02424	DB05134	Geldanamycin	Tanespimycin	-0.7666666666666665			False	False
+DB05134	DB07594	Tanespimycin	CCT-018159	-1.0			False	False
+DB00783	DB13954	Estradiol	Estradiol cypionate	-1.1201680672268906	G		False	False
+DB02424	DB00615	Geldanamycin	Rifabutin	-1.4666666666666666		J	False	False
+DB01248	DB01229	Docetaxel	Paclitaxel	-1.6666666666666667	L	L	False	False

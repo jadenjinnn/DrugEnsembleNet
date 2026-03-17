@@ -1,20 +1,13 @@
-import pickle
-
-import pandas as pd
-
-import numpy as np
-
-import re
-
+import logging
 from collections import namedtuple
 
-from tqdm import tqdm
-
-from utils import profile
-
+import gseapy
+import gseapy.algorithm
+import numpy as np
+import pandas as pd
+from joblib import Parallel, delayed
 from statsmodels.stats.multitest import multipletests
-
-import logging
+from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 logging_name = "IGSEA"
@@ -27,33 +20,26 @@ log = logging.getLogger(logging_name)
 #
 ################################################################################
 
-from cmapPy.pandasGEXpress.parse import parse as parse_gctx
-
-import gseapy
-import gseapy.algorithm
-
-from databases import LINCS
 
 prerank_gsea_results = namedtuple(
-    typename="IGSEA_results", field_names=["ES", "NES", "pvalue"],
+    typename="IGSEA_results",
+    field_names=["ES", "NES", "pvalue"],
 )
 
 
 # @profile()
 def prerank_gsea(
-    expression_df, disease_name, gene_set, lincs, nperm=int(1e4), seed=12345
+    expression_df, disease_name, gene_set, sigid2DBid, nperm=int(1e4), seed=12345
 ):
     """
-        Gens Set Enrichment Analysis for a Preranked Single Signature
+    Gens Set Enrichment Analysis for a Preranked Single Signature
     """
     log = logging.getLogger("IGSEA:prerank_gsea")
     rank = expression_df.sort_values(ascending=False)
     gsea_results, _, _, _ = gseapy.algorithm.gsea_compute(
         data=rank,
         n=nperm,
-        gmt={
-            f"{lincs.sigid2DBid[rank.name]}_{disease_name.replace(' ', '')}": gene_set
-        },
+        gmt={f"{sigid2DBid[rank.name]}_{disease_name.replace(' ', '')}": gene_set},
         weighted_score_type=1,
         permutation_type="gene_set",
         method=None,
@@ -62,61 +48,83 @@ def prerank_gsea(
         classes=None,
         ascending=False,
         processes=1,
-        seed=seed
+        seed=seed,
     )
 
     ES, nES, pvalue, _ = tuple(*gsea_results)
 
     return prerank_gsea_results(ES, nES, pvalue)
 
-    # gs_name = f"{lincs.sigid2DBid[rank.name]}_{disease_name.replace(' ', '')}"
-
-    # pre_res = gseapy.prerank(
-    #     rnk=rank,
-    #     gene_sets = {
-    #         gs_name : gene_set
-    #     },
-    #     outdir=f"data/results/{disease_name.replace(' ', '')}",
-    #     permutation_num=nperm,
-    #     seed=seed,
-    #     threads=1,
-    # )
-
-    # d = pre_res.results[gs_name]
-    # ES = float(d["es"])
-    # nES = float(d["nes"])
-    # pvalue = float(d["pval"])
-
-    # return prerank_gsea_results(ES, nES, pvalue)
-
-
 
 # @profile()
+
+
+def _run_single_gsea(
+    col_name, signature_data, disease_name, gene_set, sigid2DBid, nperm, seed
+):
+    try:
+        if signature_data.isna().all():
+            return col_name, None
+
+        res = prerank_gsea(
+            signature_data, disease_name, gene_set, sigid2DBid, nperm, seed
+        )
+        return col_name, res
+    except Exception:
+        return col_name, None
+
+
 def IGSEA(
-    run_name, disease_name, gene_set, lincs, nperm=int(1e4), alpha=0.25, seed=12345,
+    run_name,
+    disease_name,
+    gene_set,
+    lincs,
+    job_id,
+    nperm=int(1e4),
+    alpha=0.25,
+    seed=12345,
 ):
     """
-        Inverted Gene Set Enrichment Analysis
-        As in the paper https://academic.oup.com/bioinformatics/article/36/17/4626/5855131
+    Inverted Gene Set Enrichment Analysis
+    As in the paper https://academic.oup.com/bioinformatics/article/36/17/4626/5855131
     """
     log = logging.getLogger("IGSEA:igsea")
 
     gene_set = tuple({str(id) for id in gene_set} & lincs.BING_genes)
 
-    igsea_results = {
-        col: prerank_gsea(
-            database_batch.iloc[:, col_n],
-            disease_name,
-            gene_set,
-            lincs,
-            nperm=nperm,
-            seed=seed,
-        )
-        for database_batch in lincs.database
-        for col_n, col in tqdm(enumerate(database_batch.columns))
-    }
+    igsea_results = {}
 
-    igsea_results_cleaned = {k: v for k, v in igsea_results.items() if not np.isnan(v.pvalue)}
+    for database_batch in lincs.database:
+        # THE MAGIC: joblib Parallel block replacing your dict comprehension
+        # Set n_jobs to the number of cores you want this specific worker to use (e.g., 10)
+        batch_results = Parallel(n_jobs=10, backend="loky")(
+            delayed(_run_single_gsea)(
+                col_name,
+                signature_data,
+                disease_name,
+                gene_set,
+                lincs.sigid2DBid,
+                nperm,
+                seed,
+            )
+            # Use .items() instead of .iloc for vastly faster iteration
+            for col_name, signature_data in tqdm(
+                database_batch.items(),
+                total=len(database_batch.columns),
+                position=job_id,
+                desc=f"Job {job_id} ({disease_name})",
+                leave=False,  # Cleans up terminal when done
+            )
+        )
+
+        # Unpack the parallel results into your dictionary
+        for col_name, res in batch_results:
+            if res is not None:
+                igsea_results[col_name] = res
+
+    igsea_results_cleaned = {
+        k: v for k, v in igsea_results.items() if not np.isnan(v.pvalue)
+    }
 
     # Significance analysis
     pvalues = np.array([result.pvalue for result in igsea_results_cleaned.values()])
@@ -127,11 +135,15 @@ def IGSEA(
     results_df = pd.DataFrame(
         {
             "Signature": igsea_results_cleaned.keys(),
-            "DrugBank_ID": [lincs.sigid2DBid.get(id) for id in igsea_results_cleaned.keys()],
+            "DrugBank_ID": [
+                lincs.sigid2DBid.get(id) for id in igsea_results_cleaned.keys()
+            ],
             "DrugBank_Name": [
                 lincs.sigid2DBname.get(id) for id in igsea_results_cleaned.keys()
             ],
-            "Enrichment_Score": [result.ES for result in igsea_results_cleaned.values()],
+            "Enrichment_Score": [
+                result.ES for result in igsea_results_cleaned.values()
+            ],
             "Normalized_Enrichment_Score": [
                 result.NES for result in igsea_results_cleaned.values()
             ],
@@ -139,7 +151,9 @@ def IGSEA(
             "FDR": [
                 pvalue for pvalue in pvalues_corrected
             ],  # corrected p-value for multiple tests (False Discovery Rate)
-            "Cell_Line": [lincs.sigid2cell.get(id) for id in igsea_results_cleaned.keys()],
+            "Cell_Line": [
+                lincs.sigid2cell.get(id) for id in igsea_results_cleaned.keys()
+            ],
         }
     )
 
@@ -152,10 +166,10 @@ def IGSEA(
     )
 
     results_df["p-value"] = [
-        pvalue if pvalue != 0 else f"<{1/nperm}" for pvalue in results_df["p-value"]
+        pvalue if pvalue != 0 else f"<{1 / nperm}" for pvalue in results_df["p-value"]
     ]
     results_df["FDR"] = [
-        fdr if fdr != 0 else f"<{1/nperm}" for fdr in results_df["FDR"]
+        fdr if fdr != 0 else f"<{1 / nperm}" for fdr in results_df["FDR"]
     ]
 
     results_df.to_csv(
@@ -165,40 +179,3 @@ def IGSEA(
     )
 
     return results_df
-
-
-if __name__ == "__main__":
-    # from data.sources.Alzheimer.get_alzheimer_related_genes import alzheimer_genes
-    from data.sources.Huntington.get_huntington_related_genes import huntington_genes
-    from data.sources.MultipleSclerosis.get_multiple_sclerosis_related_genes import (
-        multiple_sclerosis_genes,
-    )
-
-    for disease_name, gene_set, base_cell_lines in (
-        # ("Alzheimer", {str(id) for id in alzheimer_genes.values()}, ["NEU", "NPC"]),
-        (
-            "Huntington",
-            {str(id) for id in huntington_genes.values()},
-            ["NEU", "NPC", "SHSY5Y", "SKB", "SKL"],
-        ),
-        (
-            "Multiple Sclerosis",
-            {str(id) for id in multiple_sclerosis_genes.values()},
-            [
-                "NEU",
-                "NPC",
-                "SHSY5Y",
-                "HL60",
-                "JURKAT",
-                "NOMO1",
-                "PL21",
-                "SKM1",
-                "THP1",
-                "U937",
-                "WSUDLCL2",
-            ],
-        ),
-    ):
-        log.info(f"Performing Inverted Gene Set Enrichment Analysis for {disease_name}")
-        lincs = LINCS(base_cell_lines=base_cell_lines, batch_size=2500)
-        igsea_results = IGSEA(disease_name, gene_set, lincs)
