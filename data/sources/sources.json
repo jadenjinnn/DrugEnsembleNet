@@ -3,7 +3,7 @@
         "files": {
             "Homo_sapiens.gene_info.gz": {
                 "URL": "https://ftp.ncbi.nlm.nih.gov/gene/DATA/GENE_INFO/Mammalia/Homo_sapiens.gene_info.gz",
-                "version": "2026-03-15    (accessed: 2026-03-17, 05:11:27 UTC)"
+                "version": "2026-03-15    (accessed: 2026-03-17, 21:22:46 UTC)"
             }
         },
         "license": "Public Domain",
@@ -14,7 +14,7 @@
         "files": {
             "all-full-database": {
                 "URL": "https://go.drugbank.com/releases/5-1-15/downloads/all-full-database",
-                "version": "5.1.15    (accessed: 2026-03-17, 05:11:35 UTC)"
+                "version": "5.1.15    (accessed: 2026-03-17, 21:22:55 UTC)"
             }
         },
         "license": "CC BY-NC 4.0",

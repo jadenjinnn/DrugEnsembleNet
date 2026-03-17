@@ -334,8 +334,6 @@ class DrugBank(Database, metaclass=Singleton):
             # preparing namedtuples
             from collections import namedtuple
 
-            print(filepath)
-
             atc_code = namedtuple(
                 typename="atc_code",
                 field_names=["level5", "level4", "level3", "level2", "level1"],
@@ -1055,12 +1053,9 @@ class DrugBank(Database, metaclass=Singleton):
                         local_url = sources_data["DrugBank"]["files"][
                             list(sources_data["DrugBank"]["files"].keys())[0]
                         ]["URL"]
-                    if (
-                        local_url == url
-                    ):  # if there is not a newer version online it doesn't update the database
-                        self._update = False
                 except:
                     pass
+                        
             return url
 
 
