@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 import databases
 from network_proximity_improved import get_proximities
+from ineractome import PPI
 
 WORKER_DATABASES = {}
 
@@ -431,6 +432,15 @@ if __name__ == "__main__":
             databases.NCBI(update=True)
             databases.DrugBank(update=True)
             databases.LINCS(update=True)
+            databases.APID(update=True)
+            databases.BioGRID(update=True)
+            databases.HuRI(update=True)
+            databases.InnateDB(update=True)
+            databases.INstruct(update=True)
+            databases.IntAct(update=True)
+            databases.SignaLink(update=True)
+            databases.STRING(update=True)
+            PPI()
             
             log.info("Finished downloading required resources")
 

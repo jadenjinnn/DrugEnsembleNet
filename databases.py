@@ -1447,3 +1447,1045 @@ class LINCS(Database):  # , metaclass=Singleton
             return chain(self.GSE70138_level5, self.GSE92742_level5)
         else:
             return self.GSE70138_level5.join(self.GSE92742_level5)
+
+
+################################################################################
+#
+#                                 Interactome
+#
+################################################################################
+
+# @profile()
+class APID(Database, metaclass=Singleton):
+    """
+        APID reference class
+        Contains info about protein-protein interactions
+    """
+
+    def __init__(self, update=None):
+        Database.__init__(
+            self,
+            update=update,
+            license="CC-BY-NC",
+            license_url="http://cicblade.dep.usal.es:8080/APID/init.action#subtab4",
+            requirements=[NCBI],
+        )
+        self.__db = self._add_file(
+            url="http://cicblade.dep.usal.es:8080/APID/InteractionsTABplain.action",
+            post=True,
+            data_to_send={
+                "interactomeTaxon": "9606",
+                "interactomeTaxon1": "9606",
+                "quality": 1,
+                "interspecies": "NO",
+            },
+            final_columns=["GeneName_A", "GeneName_B"],
+        )
+        log.info(f"Retrieving interactions from {self.__class__.__name__}")
+        self.__interactions = self.__db()
+        self.__interactions["subject"] = self.__interactions["GeneName_A"].apply(
+            self.__NCBI.check_symbol
+        )  # checks the symbol of the first gene
+        self.__interactions.dropna(subset=["subject"], inplace=True)
+        self.__interactions["object"] = self.__interactions["GeneName_B"].apply(
+            self.__NCBI.check_symbol
+        )  # checks the symbol of the first gene
+        self.__interactions.dropna(subset=["object"], inplace=True)
+        self.__interactions = pd.concat(
+            [
+                self.__interactions,
+                self.__interactions.rename(
+                    columns={"subject": "object", "object": "subject"}
+                ),
+            ]
+        ).drop_duplicates(
+            ignore_index=True
+        )  # considers also inverse interactions
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "subject", "geneName": "subjectName"}
+            )
+        )  # gets subject name
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "object", "geneName": "objectName"}
+            )
+        )  # gets object name
+        self.__interactions["relation"] = ["interacts_with"] * len(self.__interactions)
+        self.__interactions["subjectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions["objectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions = (
+            self.__interactions[
+                [
+                    "subject",
+                    "relation",
+                    "object",
+                    "subjectName",
+                    "objectName",
+                    "subjectType",
+                    "objectType",
+                    "source",
+                ]
+            ]
+            .drop_duplicates(ignore_index=True)
+            .astype(
+                {
+                    "subject": "string",
+                    "relation": "category",
+                    "object": "string",
+                    "subjectName": "string",
+                    "objectName": "string",
+                    "subjectType": "category",
+                    "objectType": "category",
+                    "source": "string",
+                }
+            )
+        )
+
+        log.info(f"{self.__class__.__name__} ready!")
+
+    @property
+    def database(self):
+        return self.__db().copy()
+
+    @property
+    def interactions(self):
+        return self.__interactions.copy()
+
+
+# @profile()
+class BioGRID(Database, metaclass=Singleton):
+    """
+        BioGRID reference class
+        Contains info about protein-protein interactions
+    """
+
+    def __init__(self, update=None):
+        Database.__init__(
+            self,
+            update=update,
+            license="MIT",
+            license_url="https://downloads.thebiogrid.org/BioGRID",
+            requirements=[NCBI],
+        )
+
+        def read_biogrid_file(filepath):
+            import zipfile
+
+            with zipfile.ZipFile(filepath) as z:
+                with z.open(f"BIOGRID-ORGANISM-Homo_sapiens-{self.v}.tab.txt") as f:
+                    return pd.read_csv(f, skiprows=35, sep="\t", dtype=str).query(
+                        "ORGANISM_A_ID == '9606' and ORGANISM_B_ID == '9606'"
+                    )
+
+        self.__db = self._add_file(
+            url=self.get_current_release_url(),
+            retrieved_version=self.v,  # retrieved by get_current_release_url
+            custom_read_function=read_biogrid_file,
+        )
+        log.info(f"Retrieving interactions from {self.__class__.__name__}")
+        self.__interactions = self.__db()[
+            [
+                "OFFICIAL_SYMBOL_A",
+                "OFFICIAL_SYMBOL_B",
+                "ALIASES_FOR_A",
+                "ALIASES_FOR_B",
+                "source",
+            ]
+        ]
+        self.__interactions["subject"] = self.__interactions[
+            ["OFFICIAL_SYMBOL_A", "ALIASES_FOR_A"]
+        ].apply(
+            lambda x: self.__NCBI.check_symbol(x[0], x[1].split("|")), axis=1
+        )  # checks symbol A symbol
+        self.__interactions.dropna(subset=["subject"], inplace=True)
+        self.__interactions["object"] = self.__interactions[
+            ["OFFICIAL_SYMBOL_B", "ALIASES_FOR_B"]
+        ].apply(
+            lambda x: self.__NCBI.check_symbol(x[0], x[1].split("|")), axis=1
+        )  # hecks symbol B symbol
+        self.__interactions.dropna(subset=["object"], inplace=True)
+        self.__interactions = pd.concat(
+            [
+                self.__interactions,
+                self.__interactions.rename(
+                    columns={"subject": "object", "object": "subject"}
+                ),
+            ]
+        ).drop_duplicates(
+            ignore_index=True
+        )  # considers also inverse interactions
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "subject", "geneName": "subjectName"}
+            )
+        )  # gets subject name
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "object", "geneName": "objectName"}
+            )
+        )  # gets object name
+        self.__interactions["relation"] = ["interacts_with"] * len(self.__interactions)
+        self.__interactions["subjectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions["objectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions = (
+            self.__interactions[
+                [
+                    "subject",
+                    "relation",
+                    "object",
+                    "subjectName",
+                    "objectName",
+                    "subjectType",
+                    "objectType",
+                    "source",
+                ]
+            ]
+            .drop_duplicates(ignore_index=True)
+            .astype(
+                {
+                    "subject": "string",
+                    "relation": "category",
+                    "object": "string",
+                    "subjectName": "string",
+                    "objectName": "string",
+                    "subjectType": "category",
+                    "objectType": "category",
+                    "source": "string",
+                }
+            )
+        )
+
+        log.info(f"{self.__class__.__name__} ready!")
+
+    @property
+    def database(self):
+        return self.__db().copy()
+
+    @property
+    def interactions(self):
+        return self.__interactions.copy()
+
+    def get_current_release_url(self):
+        if not self.update:
+            try:
+                import json
+
+                with open("data/sources/sources.json", "r+") as infofile:
+                    sources_data = json.load(infofile)
+                    filename = list(sources_data["BioGRID"]["files"].keys())[0]
+                    url = sources_data["BioGRID"]["files"][filename]["URL"]
+                    version = sources_data["BioGRID"]["files"][filename]["version"]
+                    self.v = re.findall("(.+)\    ", version)[
+                        0
+                    ]  # before four spaces (tab)
+                    return url
+            except Exception:
+                log.warning("Unable to use local copy, forcing update")
+                self._update = True
+                return self.get_current_release_url()
+        else:
+            from bs4 import BeautifulSoup
+
+            r = requests.get("https://downloads.thebiogrid.org/BioGRID/")
+            page = r.content
+            soup = BeautifulSoup(page, "html5lib")
+            href = soup.find("a", string="Current-Release")["href"]
+            self.v = re.findall("BIOGRID-(.+)/", href)[0]
+            url = f"https://downloads.thebiogrid.org/Download/BioGRID/Release-Archive/BIOGRID-{self.v}/BIOGRID-ORGANISM-{self.v}.tab.zip"
+            return url
+
+
+# @profile()
+class HuRI(Database, metaclass=Singleton):
+    """
+        HuRI reference class
+        Contains info about protein-protein interactions
+    """
+
+    def __init__(self, update=None):
+        Database.__init__(
+            self,
+            update=update,
+            license="CC BY 4.0",
+            license_url="http://www.interactome-atlas.org/download",
+            requirements=[NCBI],
+        )
+        self.__db = self._add_file(
+            url="http://www.interactome-atlas.org/data/HuRI.tsv",
+            names=["protein1", "protein2"],
+        )
+        log.info(f"Retrieving interactions from {self.__class__.__name__}")
+        self.__interactions = self.__db()
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.ensembl2ncbi.rename(
+                columns={"Ensembl": "protein1", "NCBI": "subject"}
+            ),
+            on="protein1",
+            how="left",
+        )  # converts Ensembl ids to NCBI
+        self.__interactions["subject"] = self.__interactions["subject"].apply(
+            self.__NCBI.check_symbol
+        )  # checks protein1 symbol
+        self.__interactions.dropna(subset=["subject"], inplace=True)
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.ensembl2ncbi.rename(
+                columns={"Ensembl": "protein2", "NCBI": "object"}
+            ),
+            on="protein2",
+            how="left",
+        )  # converts Ensembl ids to NCBI
+        self.__interactions["object"] = self.__interactions["object"].apply(
+            self.__NCBI.check_symbol
+        )  # checks protein2 symbol
+        self.__interactions.dropna(subset=["object"], inplace=True)
+        self.__interactions = pd.concat(
+            [
+                self.__interactions,
+                self.__interactions.rename(
+                    columns={"subject": "object", "object": "subject"}
+                ),
+            ]
+        ).drop_duplicates(
+            ignore_index=True
+        )  # considers also inverse interactions
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "subject", "geneName": "subjectName"}
+            )
+        )  # gets subject name
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "object", "geneName": "objectName"}
+            )
+        )  # gets object name
+        self.__interactions["relation"] = ["interacts_with"] * len(self.__interactions)
+        self.__interactions["subjectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions["objectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions = (
+            self.__interactions[
+                [
+                    "subject",
+                    "relation",
+                    "object",
+                    "subjectName",
+                    "objectName",
+                    "subjectType",
+                    "objectType",
+                    "source",
+                ]
+            ]
+            .drop_duplicates(ignore_index=True)
+            .astype(
+                {
+                    "subject": "string",
+                    "relation": "category",
+                    "object": "string",
+                    "subjectName": "string",
+                    "objectName": "string",
+                    "subjectType": "category",
+                    "objectType": "category",
+                    "source": "string",
+                }
+            )
+        )
+
+        log.info(f"{self.__class__.__name__} ready!")
+
+    @property
+    def database(self):
+        return self.__db().copy()
+
+    @property
+    def interactions(self):
+        return self.__interactions.copy()
+
+
+# @profile()
+class InnateDB(Database, metaclass=Singleton):
+    """
+        InnateDB reference class
+        Contains info about protein-protein interactions
+    """
+
+    def __init__(self, update=None):
+        Database.__init__(
+            self,
+            update=update,
+            license="DESIGN SCIENCE LICENSE",
+            license_url="https://www.innatedb.com/license.jsp",
+            requirements=[NCBI],
+        )
+        self.__db = self._add_file(
+            url="https://www.innatedb.com/download/interactions/all.mitab.gz",
+            usecols=[
+                "alias_A",
+                "alias_B",
+                "ncbi_taxid_A",
+                "ncbi_taxid_B",
+                "confidence_score",
+            ],
+        )
+        log.info(f"Retrieving interactions from {self.__class__.__name__}")
+        self.__interactions = self.__db().query(
+            "ncbi_taxid_A == 'taxid:9606(Human)' and ncbi_taxid_B == 'taxid:9606(Human)'"
+        )  # check if actually from Homo sapiens
+        self.__interactions = self.__interactions[
+            self.__interactions["confidence_score"].apply(
+                lambda s: int(re.findall("np:(.+)\|", s)[0]) >= 1
+            )
+        ]  # checks that there is at least one publication supporting the interaction that has never been used to support any other interaction #http://wodaklab.org/iRefWeb/faq
+        self.__interactions["subject"] = self.__interactions["alias_A"].apply(
+            lambda s: self.__NCBI.check_symbol(
+                re.findall("hgnc:(.+)\(display_short\)|$", s)[0]
+            )
+        )  # checks the symbol of the first gene
+        self.__interactions.dropna(subset=["subject"], inplace=True)
+        self.__interactions["object"] = self.__interactions["alias_B"].apply(
+            lambda s: self.__NCBI.check_symbol(
+                re.findall("hgnc:(.+)\(display_short\)|$", s)[0]
+            )
+        )  # checks the symbol of the second gene
+        self.__interactions.dropna(subset=["object"], inplace=True)
+        self.__interactions = self.__interactions[["subject", "object", "source"]]
+        self.__interactions = pd.concat(
+            [
+                self.__interactions,
+                self.__interactions.rename(
+                    columns={"subject": "object", "object": "subject"}
+                ),
+            ]
+        ).drop_duplicates(
+            ignore_index=True
+        )  # considers also inverse interactions
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "subject", "geneName": "subjectName"}
+            ),
+            on="subject",
+            how="left",
+        )  # gets subject name
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "object", "geneName": "objectName"}
+            ),
+            on="object",
+            how="left",
+        )  # gets object name
+        self.__interactions["relation"] = ["interacts_with"] * len(self.__interactions)
+        self.__interactions["subjectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions["objectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions = (
+            self.__interactions[
+                [
+                    "subject",
+                    "relation",
+                    "object",
+                    "subjectName",
+                    "objectName",
+                    "subjectType",
+                    "objectType",
+                    "source",
+                ]
+            ]
+            .drop_duplicates(ignore_index=True)
+            .astype(
+                {
+                    "subject": "string",
+                    "relation": "category",
+                    "object": "string",
+                    "subjectName": "string",
+                    "objectName": "string",
+                    "subjectType": "category",
+                    "objectType": "category",
+                    "source": "string",
+                }
+            )
+        )
+
+        log.info(f"{self.__class__.__name__} ready!")
+
+    @property
+    def database(self):
+        return self.__db().copy()
+
+    @property
+    def interactions(self):
+        return self.__interactions.copy()
+
+
+# @profile()
+class INstruct(Database, metaclass=Singleton):
+    """
+        INstruct reference class
+        Contains info about protein-protein interactions
+    """
+
+    def __init__(self, update=None):
+        Database.__init__(
+            self,
+            update=update,
+            license="All rights reserved (Authorization obtained by e-mail contact with Haiyuan Yu <haiyuan.yu@cornell.edu>)",
+            license_url="http://instruct.yulab.org/about.html",
+            requirements=[NCBI],
+        )
+        self.__db = self._add_file(
+            url="http://instruct.yulab.org/download/sapiens.sin",
+            usecols=["ProtA[Official Symbol]", "ProtB[Official Symbol]"],
+        )
+        log.info(f"Retrieving interactions from {self.__class__.__name__}")
+        self.__interactions = self.__db()
+        self.__interactions["subject"] = self.__interactions[
+            "ProtA[Official Symbol]"
+        ].apply(
+            self.__NCBI.check_symbol
+        )  # checks protA symbol
+        self.__interactions.dropna(subset=["subject"], inplace=True)
+        self.__interactions["object"] = self.__interactions[
+            "ProtB[Official Symbol]"
+        ].apply(
+            self.__NCBI.check_symbol
+        )  # checks protB symbol
+        self.__interactions.dropna(subset=["object"], inplace=True)
+        self.__interactions = pd.concat(
+            [
+                self.__interactions,
+                self.__interactions.rename(
+                    columns={"subject": "object", "object": "subject"}
+                ),
+            ]
+        ).drop_duplicates(
+            ignore_index=True
+        )  # considers also inverse interactions
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "subject", "geneName": "subjectName"}
+            )
+        )  # gets subject name
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "object", "geneName": "objectName"}
+            )
+        )  # gets object name
+        self.__interactions["relation"] = ["interacts_with"] * len(self.__interactions)
+        self.__interactions["subjectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions["objectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions = (
+            self.__interactions[
+                [
+                    "subject",
+                    "relation",
+                    "object",
+                    "subjectName",
+                    "objectName",
+                    "subjectType",
+                    "objectType",
+                    "source",
+                ]
+            ]
+            .drop_duplicates(ignore_index=True)
+            .astype(
+                {
+                    "subject": "string",
+                    "relation": "category",
+                    "object": "string",
+                    "subjectName": "string",
+                    "objectName": "string",
+                    "subjectType": "category",
+                    "objectType": "category",
+                    "source": "string",
+                }
+            )
+        )
+
+        log.info(f"{self.__class__.__name__} ready!")
+
+    @property
+    def database(self):
+        return self.__db().copy()
+
+    @property
+    def interactions(self):
+        return self.__interactions.copy()
+
+
+# @profile()
+class IntAct(Database, metaclass=Singleton):
+    """
+        IntAct reference class
+        Contains info about protein-protein interactions
+    """
+
+    def __init__(self, update=None):
+        Database.__init__(
+            self,
+            update=update,
+            license="CC-BY 4.0",
+            license_url="https://www.ebi.ac.uk/intact/resources/overview",
+            requirements=[NCBI],
+        )
+
+        def read_intact_file(filepath):
+            import zipfile
+
+            with zipfile.ZipFile(filepath) as z:
+                with z.open("intact.txt") as f:
+                    return pd.read_csv(f, sep="\t", dtype=str)
+
+        self.__db = self._add_file(
+            url="http://ftp.ebi.ac.uk/pub/databases/intact/current/psimitab/intact.zip",
+            custom_read_function=read_intact_file,
+            usecols=[
+                "Alias(es) interactor A",
+                "Alias(es) interactor B",
+                "Taxid interactor A",
+                "Taxid interactor B",
+                "Confidence value(s)",
+            ],
+        )
+        log.info(f"Retrieving interactions from {self.__class__.__name__}")
+        self.__interactions = self.__db()
+        self.__interactions = self.__interactions[
+            (
+                self.__interactions["Taxid interactor A"].str.contains(
+                    "taxid:9606\(Homo sapiens\)"
+                )
+            )
+            & (
+                self.__interactions["Taxid interactor B"].str.contains(
+                    "taxid:9606\(Homo sapiens\)"
+                )
+            )
+        ]  # check if actually from Homo sapiens (both interactor A and B)
+        self.__interactions = self.__interactions[
+            self.__interactions["Confidence value(s)"].apply(
+                lambda s: float(re.findall("intact-miscore:(.+)", s)[0]) >= 0.6
+            )
+        ]  # threshold for high confidence https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4316181/pdf/bau131.pdf
+        self.__interactions["subject"] = self.__interactions[
+            "Alias(es) interactor A"
+        ].apply(
+            lambda s: self.__NCBI.check_symbol(
+                re.findall(":([a-zA-Z]+)\(gene name\)|$", s)[0],
+                [
+                    re.findall(":(.+)\(|$", alias)[0]
+                    for alias in s.split("|")
+                    if "(gene name synonym)" in alias
+                ],
+            )
+        )  # checks the symbol of the first gene
+        self.__interactions.dropna(subset=["subject"], inplace=True)
+        self.__interactions["object"] = self.__interactions[
+            "Alias(es) interactor B"
+        ].apply(
+            lambda s: self.__NCBI.check_symbol(
+                re.findall(":([a-zA-Z]+)\(gene name\)|$", s)[0],
+                [
+                    re.findall(":(.+)\(|$", alias)[0]
+                    for alias in s.split("|")
+                    if "(gene name synonym)" in alias
+                ],
+            )
+        )  # checks the symbol of the second gene
+        self.__interactions.dropna(subset=["object"], inplace=True)
+        self.__interactions = self.__interactions[
+            ["subject", "object", "source"]
+        ].drop_duplicates(ignore_index=True)
+        self.__interactions = pd.concat(
+            [
+                self.__interactions,
+                self.__interactions.rename(
+                    columns={"subject": "object", "object": "subject"}
+                ),
+            ]
+        ).drop_duplicates(
+            ignore_index=True
+        )  # considers also inverse interactions
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "subject", "geneName": "subjectName"}
+            ),
+            on="subject",
+            how="left",
+        )  # gets subject name
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "object", "geneName": "objectName"}
+            ),
+            on="object",
+            how="left",
+        )  # gets object name
+        self.__interactions["relation"] = ["interacts_with"] * len(self.__interactions)
+        self.__interactions["subjectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions["objectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions = (
+            self.__interactions[
+                [
+                    "subject",
+                    "relation",
+                    "object",
+                    "subjectName",
+                    "objectName",
+                    "subjectType",
+                    "objectType",
+                    "source",
+                ]
+            ]
+            .drop_duplicates(ignore_index=True)
+            .astype(
+                {
+                    "subject": "string",
+                    "relation": "category",
+                    "object": "string",
+                    "subjectName": "string",
+                    "objectName": "string",
+                    "subjectType": "category",
+                    "objectType": "category",
+                    "source": "string",
+                }
+            )
+        )
+
+        log.info(f"{self.__class__.__name__} ready!")
+
+    @property
+    def database(self):
+        return self.__db().copy()
+
+    @property
+    def interactions(self):
+        return self.__interactions.copy()
+
+
+# @profile()
+class SignaLink(Database, metaclass=Singleton):
+    """
+        SignaLink reference class
+        Contains info about protein-protein interactions
+    """
+
+    def __init__(self, update=None):
+        Database.__init__(
+            self,
+            update=update,
+            license="CC BY-NC-SA 3.0",
+            license_url="http://signalink.org/faq",
+            requirements=[NCBI],
+        )
+
+        def read_signalink_file(filepath):
+            import tarfile
+            import json
+
+            with tarfile.open(filepath) as archive:
+                edges_member = [file for file in archive.getnames() if "edges" in file][
+                    0
+                ]
+                nodes_member = [file for file in archive.getnames() if "nodes" in file][
+                    0
+                ]
+                raw_edges = json.load(archive.extractfile(edges_member))
+                raw_nodes = json.load(archive.extractfile(nodes_member))
+            taxon = {
+                node["displayedName"]: int(node["taxon"]["id"]) for node in raw_nodes
+            }
+            accepted_dbs = (
+                "SignaLink",
+                "ACSN",
+                "InnateDB",
+                "Signor",
+                "PhosphoSite",
+                "TheBiogrid",
+                "ComPPI",
+                "HPRD",
+                "IntAct",
+                "OmniPath",
+            )  # PSP == Potential Scaffold Proteins
+            edges = set()
+            for edge in raw_edges:
+                if len(
+                    {
+                        db["value"]
+                        for db in edge["sourceDatabases"]
+                        if db["value"] in accepted_dbs
+                    }
+                ):  # only trusted databases for proteins
+                    source = edge["sourceDisplayedName"]
+                    target = edge["targetDisplayedName"]
+                    if (
+                        taxon[source] == 9606 and taxon[target] == 9606
+                    ):  # filters for homo sapiens
+                        source = self.__NCBI.check_symbol(
+                            source
+                        )  # checks the symbol of the source
+                        target = self.__NCBI.check_symbol(
+                            target
+                        )  # checks the symbol of the target
+                        if source and target:
+                            edges.add(
+                                (
+                                    source,
+                                    target,
+                                    edge["sourceFullName"],
+                                    edge["targetFullName"],
+                                    ", ".join(
+                                        {db["value"] for db in edge["sourceDatabases"]}
+                                    ),
+                                )
+                            )
+            return (
+                pd.DataFrame(
+                    edges,
+                    columns=[
+                        "sourceSymbol",
+                        "targetSymbol",
+                        "sourceName",
+                        "targetName",
+                        "database",
+                    ],
+                )
+                .drop_duplicates(ignore_index=True)
+                .astype(
+                    {
+                        "sourceSymbol": "string",
+                        "targetSymbol": "string",
+                        "sourceName": "string",
+                        "targetName": "string",
+                        "database": "category",
+                    }
+                )
+            )
+
+        self.__db = self._add_file(  # http:://signalink.org/download/521c18e9ea050e801018
+            url="http://signalink.org/slk3db_dump_json.tgz",  # http://signalink.org/download/33a38c88031e461c8c29 # http://signalink.org/download/e64ffdd983087ea7c794 csv # http:://signalink.org/download/33a38c88031e461c8c29 psimitab
+            custom_read_function=read_signalink_file,
+        )
+        log.info(f"Retrieving interactions from {self.__class__.__name__}")
+        self.__interactions = self.__db().rename(
+            columns={"sourceSymbol": "subject", "targetSymbol": "object"}
+        )[["subject", "object", "source"]]
+        self.__interactions = pd.concat(
+            [
+                self.__interactions,
+                self.__interactions.rename(
+                    columns={"subject": "object", "object": "subject"}
+                ),
+            ]
+        ).drop_duplicates(
+            ignore_index=True
+        )  # considers also inverse interactions
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "subject", "geneName": "subjectName"}
+            ),
+            on="subject",
+            how="left",
+        )  # gets subject name (names not provided by NCBI or HGNC are not trusted)
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "object", "geneName": "objectName"}
+            ),
+            on="object",
+            how="left",
+        )  # gets object name (names not provided by NCBI or HGNC are not trusted)
+        self.__interactions["relation"] = ["interacts_with"] * len(self.__interactions)
+        self.__interactions["subjectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions["objectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions = (
+            self.__interactions[
+                [
+                    "subject",
+                    "relation",
+                    "object",
+                    "subjectName",
+                    "objectName",
+                    "subjectType",
+                    "objectType",
+                    "source",
+                ]
+            ]
+            .drop_duplicates(ignore_index=True)
+            .astype(
+                {
+                    "subject": "string",
+                    "relation": "category",
+                    "object": "string",
+                    "subjectName": "string",
+                    "objectName": "string",
+                    "subjectType": "category",
+                    "objectType": "category",
+                    "source": "string",
+                }
+            )
+        )
+
+        log.info(f"{self.__class__.__name__} ready!")
+
+    @property
+    def database(self):
+        return self.__db().copy()
+
+    @property
+    def interactions(self):
+        return self.__interactions.copy()
+
+
+# @profile()
+class STRING(Database, metaclass=Singleton):
+    """
+        STRING reference class
+        Contains info about protein-protein interactions
+    """
+
+    def __init__(self, update=None):
+        Database.__init__(
+            self,
+            update=update,
+            license="CC BY 4.0",
+            license_url="https://string-db.org/cgi/access?footer_active_subpage=licensing",
+            requirements=[NCBI],
+        )
+        self.__symbol2string = self._add_file(
+            url="https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz",
+            skiprows=1,
+            names=["NCBI taxid", "geneSymbol", "STRING"],
+            final_columns=["geneSymbol", "STRING"],
+        )
+        self.__symbol2string_asdict = (
+            self.__symbol2string().set_index("geneSymbol")["STRING"].to_dict()
+        )
+        self.__string2symbol_asdict = (
+            self.__symbol2string().set_index("STRING")["geneSymbol"].to_dict()
+        )
+        self.__db = self._add_file(
+            url=self.get_current_release_url(),
+            sep=" ",
+            retrieved_version=self.v,  # retrieved by get_current_release_url
+            dtype={"protein1": str, "protein2": str, "combined_score": int},
+        )
+        log.info(f"Retrieving interactions from {self.__class__.__name__}")
+        self.__interactions = self.__db().query(
+            "combined_score >= 700"
+        )  # threshold for high confidence https://string-db.org/help/faq/#how-to-extract-high-confidence-07-interactions-from-information-on-combined-score-in-proteinlinkstxtgz
+        self.__interactions["subject"] = self.__interactions["protein1"].apply(
+            lambda s: self.__NCBI.check_symbol(self.get_symbol_by_string(s))
+        )  # checks protA symbol
+        self.__interactions.dropna(subset=["subject"], inplace=True)
+        self.__interactions["object"] = self.__interactions["protein2"].apply(
+            lambda s: self.__NCBI.check_symbol(self.get_symbol_by_string(s))
+        )  # checks protB symbol
+        self.__interactions.dropna(subset=["object"], inplace=True)
+        self.__interactions = pd.concat(
+            [
+                self.__interactions,
+                self.__interactions.rename(
+                    columns={"subject": "object", "object": "subject"}
+                ),
+            ]
+        ).drop_duplicates(
+            ignore_index=True
+        )  # considers also inverse interactions
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "subject", "geneName": "subjectName"}
+            )
+        )  # gets subject name
+        self.__interactions = self.__interactions.merge(
+            self.__NCBI.gene2name.rename(
+                columns={"geneSymbol": "object", "geneName": "objectName"}
+            )
+        )  # gets object name
+        self.__interactions["relation"] = ["interacts_with"] * len(self.__interactions)
+        self.__interactions["subjectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions["objectType"] = ["protein"] * len(self.__interactions)
+        self.__interactions = (
+            self.__interactions[
+                [
+                    "subject",
+                    "relation",
+                    "object",
+                    "subjectName",
+                    "objectName",
+                    "subjectType",
+                    "objectType",
+                    "source",
+                ]
+            ]
+            .drop_duplicates(ignore_index=True)
+            .astype(
+                {
+                    "subject": "string",
+                    "relation": "category",
+                    "object": "string",
+                    "subjectName": "string",
+                    "objectName": "string",
+                    "subjectType": "category",
+                    "objectType": "category",
+                    "source": "string",
+                }
+            )
+        )
+
+        log.info(f"{self.__class__.__name__} ready!")
+
+    @property
+    def database(self):
+        return self.__db().copy()
+
+    @property
+    def interactions(self):
+        return self.__interactions.copy()
+
+    @property
+    def symbol2string(self):
+        return self.__symbol2string().copy()
+
+    @property
+    def symbol2string_asdict(self):
+        return self.__symbol2string_asdict.copy()
+
+    @property
+    def string2symbol_asdict(self):
+        return self.__string2symbol_asdict.copy()
+
+    def get_string_by_symbol(self, symbol):
+        return self.__symbol2string_asdict.get(symbol, f"{symbol} Not Found")
+
+    def get_symbol_by_string(self, string):
+        if not string.startswith("9606."):
+            string = "9606." + string
+        return self.__string2symbol_asdict.get(string, f"{string} Not Found")
+
+    def get_current_release_url(self):
+        if not self.update:
+            try:
+                import json
+
+                with open("data/sources/sources.json", "r+") as infofile:
+                    sources_data = json.load(infofile)
+                    filename = [
+                        f
+                        for f in sources_data["STRING"]["files"]
+                        if "protein.links" in f
+                    ][0]
+                    url = sources_data["STRING"]["files"][filename]["URL"]
+                    self.v = re.findall("v(.+)\.txt", filename)[0]
+                    return url
+            except Exception:
+                log.warning("Unable to use local copy, forcing update")
+                self._update = True
+                return self.get_current_release_url()
+        else:
+            import requests
+            from bs4 import BeautifulSoup
+
+            r = requests.get("https://stringdb-static.org/download/")
+            page = r.content
+            soup = BeautifulSoup(page, "html5lib")
+            self.v = [a for a in soup.findAll("a") if "protein.links.v" in a["href"]][
+                0
+            ].text[
+                15:-1
+            ]  # current release version
+            url = f"https://stringdb-static.org/download/protein.links.v{self.v}/9606.protein.links.v{self.v}.txt.gz"
+            return url
