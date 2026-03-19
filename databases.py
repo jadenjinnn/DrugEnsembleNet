@@ -2346,16 +2346,16 @@ class STRING(Database, metaclass=Singleton):
             requirements=[NCBI],
         )
         self.__symbol2string = self._add_file(
-            url="https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz",
+            url="https://stringdb-downloads.org/download/protein.info.v12.0/9606.protein.info.v12.0.txt.gz",
             skiprows=1,
-            names=["NCBI taxid", "geneSymbol", "STRING"],
-            final_columns=["geneSymbol", "STRING"],
+            names=["string_protein_id", "preferred_name", "protein_size", "annotation"],
+            final_columns=["string_protein_id", "preferred_name"],
         )
         self.__symbol2string_asdict = (
-            self.__symbol2string().set_index("geneSymbol")["STRING"].to_dict()
+            self.__symbol2string().set_index("preferred_name")["string_protein_id"].to_dict()
         )
         self.__string2symbol_asdict = (
-            self.__symbol2string().set_index("STRING")["geneSymbol"].to_dict()
+            self.__symbol2string().set_index("string_protein_id")["preferred_name"].to_dict()
         )
         self.__db = self._add_file(
             url=self.get_current_release_url(),
