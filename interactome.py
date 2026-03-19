@@ -38,7 +38,6 @@ class PPI(metaclass=Singleton):
                 dbs.BioGRID(update=self.__update),
                 dbs.HuRI(update=self.__update),
                 dbs.InnateDB(update=self.__update),
-                dbs.INstruct(update=self.__update),
                 dbs.IntAct(update=self.__update),
                 dbs.SignaLink(update=self.__update),
                 dbs.STRING(update=self.__update),
