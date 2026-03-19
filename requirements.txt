@@ -74,7 +74,7 @@ nvidia-ml-py3==7.352.0
 opencensus==0.8.0
 opencensus-context==0.1.2
 packaging==21.3
-pandas==1.4.1
+pandas==2.0.3
 parso==0.8.3
 pathspec==0.9.0
 patsy==0.5.6
@@ -132,7 +132,7 @@ urllib3==1.26.8
 wcwidth==0.2.5
 webencodings==0.5.1
 wget==3.2
-wrapt==1.13.3
+wrapt==1.17.3
 xlrd==2.0.1
 XlsxWriter==3.0.2
 xmltodict==0.12.0
