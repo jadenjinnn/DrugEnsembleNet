@@ -436,7 +436,6 @@ if __name__ == "__main__":
             databases.BioGRID(update=True)
             databases.HuRI(update=True)
             databases.InnateDB(update=True)
-            databases.INstruct(update=True)
             databases.IntAct(update=True)
             databases.SignaLink(update=True)
             databases.STRING(update=True)
