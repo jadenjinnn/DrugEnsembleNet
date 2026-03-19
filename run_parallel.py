@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 import databases
 from network_proximity_improved import get_proximities
-from ineractome import PPI
+from interactome import PPI
 
 WORKER_DATABASES = {}
 
