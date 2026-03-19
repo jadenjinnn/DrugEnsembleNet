@@ -1467,11 +1467,11 @@ class APID(Database, metaclass=Singleton):
             self,
             update=update,
             license="CC-BY-NC",
-            license_url="http://cicblade.dep.usal.es:8080/APID/init.action#subtab4",
+            license_url="http://apid.dep.usal.es/APID/init.action#tabr1",
             requirements=[NCBI],
         )
         self.__db = self._add_file(
-            url="http://cicblade.dep.usal.es:8080/APID/InteractionsTABplain.action",
+            url="http://apid.dep.usal.es/APID/InteractionsTABplain.action",
             post=True,
             data_to_send={
                 "interactomeTaxon": "9606",
@@ -1708,11 +1708,11 @@ class HuRI(Database, metaclass=Singleton):
             self,
             update=update,
             license="CC BY 4.0",
-            license_url="http://www.interactome-atlas.org/download",
+            license_url="http://interactome-atlas.org/download",
             requirements=[NCBI],
         )
         self.__db = self._add_file(
-            url="http://www.interactome-atlas.org/data/HuRI.tsv",
+            url="http://interactome-atlas.org/data/HuRI.tsv",
             names=["protein1", "protein2"],
         )
         log.info(f"Retrieving interactions from {self.__class__.__name__}")
