@@ -1467,11 +1467,11 @@ class APID(Database, metaclass=Singleton):
             self,
             update=update,
             license="CC-BY-NC",
-            license_url="http://cicblade.dep.usal.es:8080/APID/init.action#subtab4",
+            license_url="http://apid.dep.usal.es/APID/init.action#tabr1",
             requirements=[NCBI],
         )
         self.__db = self._add_file(
-            url="http://cicblade.dep.usal.es:8080/APID/InteractionsTABplain.action",
+            url="http://apid.dep.usal.es/APID/init.action#tabr1",
             post=True,
             data_to_send={
                 "interactomeTaxon": "9606",
