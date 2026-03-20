@@ -135,7 +135,7 @@ def enrich_l2s2_single_set(geneset: list, db, disease_name, run_name, first=1000
     df_enrichment = df_enrichment.rename(columns={"adjPvalue": "FDR"})
 
     df_enrichment.to_csv(
-        f"data/results/{run_name}/{disease_name.replace(' ', '')}/IGSEA_results.tsv",
+        f"data/results/{run_name}/{disease_name.replace(' ', '')}/l2s2_results.tsv",
         sep="\t",
         index=False,
     )
