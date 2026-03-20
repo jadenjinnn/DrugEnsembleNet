@@ -173,8 +173,7 @@ def IGSEA(
     ]
 
     results_df.to_csv(
-        f"data/results/{run_name}/{disease_name.replace(' ', '')}/IGSEA_results.tsv",
-        sep="\t",
+        f"data/results/{run_name}/{disease_name.replace(' ', '')}/IGSEA_results.csv",
         index=False,
     )
 
