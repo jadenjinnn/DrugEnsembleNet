@@ -92,7 +92,7 @@ class MultitoolAnalysis:
             return
 
         significant_proximal_results = significant_proximal_results.merge(
-            self.network_proximity_results.reset_index()[
+            self.network_proximity_results[
                 ["DrugBank_ID", "Distance", "Proximity"]
             ],
             how="left",
@@ -187,7 +187,7 @@ class MultitoolAnalysis:
         # self.network_proximity_results = pd.read_csv(
         #     f"data/results/{self.run_name}/{self.cell_type_name.replace(' ', '')}/network_proximities.csv",
         #     comment="#",
-        #     index_col=0,
+        #     # index_col=0,
         # )
 
         self.log.info("Successfully Computed Drug Proximities")
@@ -212,6 +212,12 @@ class MultitoolAnalysis:
             self.job_id,
         )
 
+        # TODO: make every tsv into csv
+
+
+        # self.igsea_results = pd.read_csv(
+        #         f"data/results/{self.run_name}/{self.cell_type_name.replace(' ', '')}/IGSEA_results.tsv", sep="\t", comment="#")
+
         self.log.info("Successfully Performed Inverted Gene Set Enrichment Analysis")
         self.log.info("Performing Analysis with Single Set L2S2")
 
@@ -227,7 +233,7 @@ class MultitoolAnalysis:
         self.valid_drugbank_ids = set(
             self.network_proximity_results[
                 self.network_proximity_results["Distance"] < self.distance_threshold
-            ].index
+            ]["DrugBank_ID"]
         )
 
         self.log.info("Selecting Promising Drug Candidates using IGSEA Results")
