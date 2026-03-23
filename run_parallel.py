@@ -8,6 +8,7 @@ import logging
 import os
 import re
 from pathlib import Path
+from collections import defaultdict
 
 
 import numpy as np
@@ -120,6 +121,10 @@ class MultitoolAnalysis:
         promising_drug_candidates["Indication"] = promising_drug_candidates[
             "DrugBank_ID"
         ].apply(lambda id: drugbank.get(id).indication)
+
+        if promising_drug_candidates.empty:
+            self.log.warning("No promising drug candidates found for %s", self.cell_type_name)
+            return None
 
         promising_drug_candidates = promising_drug_candidates[
             [
@@ -343,12 +348,96 @@ class EnsemblePipeline:
                 self.completed_cell_types.add(cell_type)
                 self.log.info("Finished processing %s", cell_type)
 
-    def rank(self):
-        """
-        Ranks all Datasets by Cell-Type then Overall, Outputting Both Results
-        """
+class ConsensusRanker:
+    def __init__(self, dataset_directory):
+        self.dir_path = Path(dataset_directory)
 
-        pass
+        self.log = logging.getLogger("Consensus.Rank")
+
+    def _borda_rank(self, ranked_lists):
+        if not ranked_lists:
+            return pd.DataFrame(columns=["DrugBank_ID", "Borda_Score"])
+
+        unique_drugs = set()
+        for lst in ranked_lists:
+            unique_drugs.update(lst)
+            
+        max_score = len(unique_drugs)
+        
+        if max_score == 0:
+            return pd.DataFrame(columns=["DrugBank_ID", "Borda_Score"])
+
+        borda_scores = {}
+        
+        for lst in ranked_lists:
+            for rank_index, drug_id in enumerate(lst):
+                points = max_score - rank_index 
+                
+
+                borda_scores[drug_id] = borda_scores.get(drug_id, 0) + points
+
+        results_df = pd.DataFrame(list(borda_scores.items()), columns=["DrugBank_ID", "Borda_Score"])
+        
+        results_df.sort_values(
+            by="Borda_Score", 
+            ascending=False, 
+            inplace=True, 
+            ignore_index=True
+        )
+        
+        return results_df
+
+    def rank(self):
+        dataset_folders = [dataset for dataset in dir_path.iterdir() if dataset.is_dir()]
+
+        cell_type_groups = defaultdict(list)
+
+        for dataset in dataset_folders:
+            cell_type_folders = [cell_type for cell_type in dataset.iterdir() if cell_type.is_dir()]
+            dataset_cell_type_list = []
+
+            for cell_type_dir in cell_type_folders:
+                cell_type_name = cell_type_dir.name
+
+                igsea_path = cell_type_dir / "promising_drug_candidates_igsea.csv"
+                l2s2_path = cell_type_dir / "promising_drug_candidates_l2s2.csv"
+
+                cell_tool_lists = []
+
+                if igsea_path.exists():
+                    cell_tool_lists.append(pd.read_csv(igsea_path)["DrugBank_ID"].tolist())
+                if l2s2_path.exists():
+                    cell_tool_lists.append(pd.read_csv(l2s2_path)["DrugBank_ID"].tolist())
+
+                if cell_tool_lists:
+                    cell_type_consensus = self._borda_rank(cell_tool_lists,)
+                    cell_type_consensus_path = cell_type_dir / "tool_consensus.csv"
+                    cell_type_consensus.to_csv(cell_type_consensus_path, index=False)
+
+                    cell_type_groups[cell_type_name].append(cell_type_consensus_path)
+
+        all_cell_type_consensus_lists = []
+
+        for cell_name, consensus_paths in cell_type_groups.items():
+            dataset_lists = []
+            
+            for path in consensus_paths:
+                dataset_lists.append(pd.read_csv(path)["DrugBank_ID"].tolist())
+                
+            if dataset_lists:
+                cell_consensus = self._borda_rank(dataset_lists,)
+
+                cell_consensus.to_csv(self.dir_path / f"consensus_ALL_DATASETS_{cell_name}.csv", index=False)
+
+                all_cell_type_consensus_lists.append(cell_consensus["DrugBank_ID"].tolist())
+
+        self.log.info("Calculating final Master Consensus across all Cell Types...")
+        if all_cell_type_consensus_lists:
+            master_consensus = self._borda_rank(all_cell_type_consensus_lists)
+            master_consensus.to_csv(self.dir_path / "MASTER_DRUG_RANKINGS.csv", index=False)
+            self.log.info(f"Ranking complete! Check {self.dir_path / 'MASTER_DRUG_RANKINGS.csv'}")
+        else:
+            self.log.error("No data found to rank.")
 
 
 def gather_run_configs():
@@ -362,6 +451,22 @@ def gather_run_configs():
 
     while first_time not in ["y", "n"]:
         first_time = input("Response must be y or n ").lower()
+
+    mode = input("Do you want to rank results (r) or analyse a new dataset (a)? (r/a) ").lower()
+
+    while mode not in ["a", "r"]:
+        first_time = input("Response must be r (ranking) or a (analysis) ").lower()
+
+    ranking_data_directory = input(
+        "What is the directory of the folder containing the results for ranking? "
+    )
+
+    if mode == "r":
+        return {
+            "first_time": first_time,
+            "dataset_directory": ranking_data_directory,
+            "mode": mode,
+        }
 
     run_name = "_".join(
         input(
@@ -380,6 +485,7 @@ def gather_run_configs():
         "run_name": run_name,
         "cell_lines": cell_lines,
         "dataset_directory": dataset_directory,
+        "mode": mode,
     }
 
 
@@ -458,17 +564,23 @@ if __name__ == "__main__":
         ):
             log.error("%s is not a directory, does not exist, or is empty", dir_path)
 
-        os.makedirs(f"data/results/{run_config['run_name']}", exist_ok=True)
+        if run_config["mode"] == "r":
+            ranker = ConsensusRanker(dir_path)
 
-        datasets_paths = []
+            ranker.rank()
 
-        for gene_file_path in dir_path.iterdir():
-            if gene_file_path.is_file():
-                datasets_paths.append(gene_file_path)
+        else:
+            os.makedirs(f"data/results/{run_config['run_name']}", exist_ok=True)
 
-        worker_jobs = generate_worker_jobs(
-            run_config["run_name"], run_config["cell_lines"], datasets_paths
-        )
+            datasets_paths = []
 
-        pipeline = EnsemblePipeline(worker_jobs)
-        pipeline.run_parallel_analysis()
+            for gene_file_path in dir_path.iterdir():
+                if gene_file_path.is_file():
+                    datasets_paths.append(gene_file_path)
+
+            worker_jobs = generate_worker_jobs(
+                run_config["run_name"], run_config["cell_lines"], datasets_paths
+            )
+
+            pipeline = EnsemblePipeline(worker_jobs)
+            pipeline.run_parallel_analysis()
