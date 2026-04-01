@@ -14,7 +14,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 from IGSEA import IGSEA
-from l2s2 import enrich_l2s2_single_set
+import l2s2
 from networkx import from_pandas_edgelist
 from tqdm import tqdm
 
@@ -66,6 +66,7 @@ class MultitoolAnalysis:
         self.log = logging.getLogger(f"{self.run_name}.{self.cell_type_name}")
 
         self.disease_genes = self._get_genes_from_dataset_file(dataset_path)
+        self.disease_genes_updown = self._get_genes_from_directory_updown(dataset_path)
 
     def _get_promising_drug_candidates(self, results_df, drugbank):
         """
@@ -172,6 +173,46 @@ class MultitoolAnalysis:
 
         return genes_dict
 
+    def _get_genes_from_directory_updown(self, file_path):
+        if (
+            not file_path.exists()
+            or not file_path.is_file()
+            or file_path.suffix != ".csv"
+        ):
+            self.log.error(
+                "%s either does not exist, is not a file, or is not a csv file",
+                file_path,
+            )
+
+            return None
+
+        up_genes = set()
+        down_genes = set()
+
+        genes = pd.read_csv(file_path).iloc[:, 0].tolist()
+        log2FC = pd.read_csv(file_path).iloc[:, 2].tolist()
+
+        for gene, fc in zip(genes, log2FC):
+            if fc > 0.25:
+                up_genes.add(gene)
+            elif fc < -0.25:
+                down_genes.add(gene)
+
+
+        up_genes_dict = {
+            self.ncbi.check_symbol(gene): self.ncbi.get_id_by_symbol(gene)
+            for gene in up_genes
+            if self.ncbi.get_id_by_symbol(gene) and self.ncbi.check_symbol(gene)
+        }
+
+        down_genes_dict = {
+            self.ncbi.check_symbol(gene): self.ncbi.get_id_by_symbol(gene)
+            for gene in down_genes
+            if self.ncbi.get_id_by_symbol(gene) and self.ncbi.check_symbol(gene)
+        }
+
+        return up_genes_dict, down_genes_dict
+
     def analyze(self):
         """
         Drug Candidates Identification by Integrated Network Analysis Optimized for Multiple Datasets
@@ -217,16 +258,13 @@ class MultitoolAnalysis:
             self.job_id,
         )
 
-        # TODO: make every tsv into csv
-
-
         # self.igsea_results = pd.read_csv(
         #         f"data/results/{self.run_name}/{self.cell_type_name.replace(' ', '')}/IGSEA_results.tsv", sep="\t", comment="#")
 
         self.log.info("Successfully Performed Inverted Gene Set Enrichment Analysis")
         self.log.info("Performing Analysis with Single Set L2S2")
 
-        self.l2s2_results = enrich_l2s2_single_set(
+        self.l2s2_results = l2s2.enrich_l2s2_single_set(
             list(self.disease_genes.keys()),
             self.drugbank,
             self.cell_type_name,
@@ -270,6 +308,11 @@ class MultitoolAnalysis:
             self.l2s2_promising_drug_candidates.to_csv(
                 f"data/results/{self.run_name}/{self.cell_type_name.replace(' ', '')}/promising_drug_candidates_l2s2.csv"
             )
+
+        self.log.info("Selecting Promising Drug Candidates using L2S2 w/ Directionality")
+
+        if self.disease_genes_updown[0] and self.disease_genes_updown[1]:
+            l2s2.enrich_l2s2_up_down(list(self.disease_genes_updown[0].keys()), list(self.disease_genes_updown[1].keys()), self.drugbank, self.run_name, self.cell_type_name,)
 
 
 def _initialize_worker_databases(cell_lines=None):
@@ -401,6 +444,7 @@ class ConsensusRanker:
 
                 igsea_path = cell_type_dir / "promising_drug_candidates_igsea.csv"
                 l2s2_path = cell_type_dir / "promising_drug_candidates_l2s2.csv"
+                l2s2_updown_path = cell_type_dir / "promising_drug_candidates_l2s2_updown.csv"
 
                 cell_tool_lists = []
 
@@ -408,6 +452,8 @@ class ConsensusRanker:
                     cell_tool_lists.append(pd.read_csv(igsea_path)["DrugBank_ID"].tolist())
                 if l2s2_path.exists():
                     cell_tool_lists.append(pd.read_csv(l2s2_path)["DrugBank_ID"].tolist())
+                if l2s2_updown_path.exists():
+                    cell_tool_lists.append(pd.read_csv(l2s2_updown_path)["DrugBank_ID"].tolist())
 
                 if cell_tool_lists:
                     cell_type_consensus = self._borda_rank(cell_tool_lists,)
