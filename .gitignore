@@ -2,8 +2,7 @@
 tmp*
 
 # ignore everything in sources except for sources.json
-data/sources/*
-data/results/*
+data/*
 !sources.json
 # !data/sources/Alzheimer
 # !data/sources/Huntington
