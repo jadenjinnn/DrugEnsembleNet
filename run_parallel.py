@@ -452,16 +452,18 @@ def gather_run_configs():
     while first_time not in ["y", "n"]:
         first_time = input("Response must be y or n ").lower()
 
-    mode = input("Do you want to rank results (r) or analyse a new dataset (a)? (r/a) ").lower()
+    mode = input("Do you want to rank results (r) or analyze a new dataset (a)? (r/a) ").lower()
 
     while mode not in ["a", "r"]:
         first_time = input("Response must be r (ranking) or a (analysis) ").lower()
 
-    ranking_data_directory = input(
-        "What is the directory of the folder containing the results for ranking? "
-    )
+    
 
     if mode == "r":
+        ranking_data_directory = input(
+        "What is the directory of the folder containing the results for ranking? "
+        )
+
         return {
             "first_time": first_time,
             "dataset_directory": ranking_data_directory,
