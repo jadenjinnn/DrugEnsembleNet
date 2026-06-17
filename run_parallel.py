@@ -4,6 +4,7 @@ usage:
 
 import argparse
 import concurrent.futures
+from html import escape
 import logging
 import os
 import re
@@ -24,6 +25,52 @@ from interactome import PPI
 
 WORKER_DATABASES = {}
 
+HD_CLINICAL_TRIAL_DRUGBANK_IDS = {
+    "DB17924",
+    "DB00470",
+    "DB00148",
+    "DB21549",
+    "DB16975",
+    "DB04844",
+    "DB11947",
+    "DB06819",
+    "DB11725",
+    "DB01017",
+    "DB01043",
+    "DB14509",
+    "DB00313",
+    "DB06685",
+    "DB08387",
+    "DB09270",
+    "DB13978",
+    "DB15155",
+    "DB01156",
+    "DB00915",
+    "DB12161",
+    "DB11340",
+    "DB02709",
+    "DB18165",
+    "DB17870",
+    "DB00334",
+    "DB13025",
+    "DB21645",
+    "DB01065",
+    "DB05565",
+    "DB16977",
+    "DB01039",
+    "DB12116",
+    "DB11677",
+    "DB00740",
+    "DB16968",
+    "DB08887",
+    "DB00734",
+    "DB00514",
+    "DB00908",
+    "DB00289",
+    "DB00215",
+    "DB11915",
+}
+
 
 class MultitoolAnalysis:
     """
@@ -33,6 +80,7 @@ class MultitoolAnalysis:
     def __init__(
         self,
         run_name,
+        directional,
         cell_type_name,
         cell_lines,
         dataset_path: Path,
@@ -45,6 +93,11 @@ class MultitoolAnalysis:
         self.run_name = run_name
         self.cell_type_name = cell_type_name
         self.cell_lines = cell_lines
+
+        if directional == "y":
+            self.directional = True
+        else:
+            self.directional = False
 
         self.lincs = lincs_db
         self.drugbank = drugbank_db
@@ -66,7 +119,9 @@ class MultitoolAnalysis:
         self.log = logging.getLogger(f"{self.run_name}.{self.cell_type_name}")
 
         self.disease_genes = self._get_genes_from_dataset_file(dataset_path)
-        self.disease_genes_updown = self._get_genes_from_directory_updown(dataset_path)
+
+        if self.directional:
+            self.disease_genes_updown = self._get_genes_from_directory_updown(dataset_path)
 
     def _get_promising_drug_candidates(self, results_df, drugbank):
         """
@@ -190,14 +245,21 @@ class MultitoolAnalysis:
         down_genes = set()
 
         genes = pd.read_csv(file_path).iloc[:, 0].tolist()
-        log2FC = pd.read_csv(file_path).iloc[:, 2].tolist()
+        # log2FC = pd.read_csv(file_path).iloc[:, 2].tolist()
+        updown = pd.read_csv(file_path).iloc[:, -1].tolist()
 
         for gene, fc in zip(genes, log2FC):
-            if fc > 0.25:
+            if fc > 1.1:
                 up_genes.add(gene)
-            elif fc < -0.25:
+            elif fc < -1.1:
                 down_genes.add(gene)
 
+
+        # for gene, ud in zip(genes, updown):
+        #     if ud == "up":
+        #         up_genes.add(gene)
+        #     else:
+        #         down_genes.add(gene)
 
         up_genes_dict = {
             self.ncbi.check_symbol(gene): self.ncbi.get_id_by_symbol(gene)
@@ -311,8 +373,9 @@ class MultitoolAnalysis:
 
         self.log.info("Selecting Promising Drug Candidates using L2S2 w/ Directionality")
 
-        if self.disease_genes_updown[0] and self.disease_genes_updown[1]:
-            l2s2.enrich_l2s2_up_down(list(self.disease_genes_updown[0].keys()), list(self.disease_genes_updown[1].keys()), self.drugbank, self.run_name, self.cell_type_name,)
+        if self.directional: 
+            if self.disease_genes_updown[0] and self.disease_genes_updown[1]:
+                l2s2.enrich_l2s2_up_down(list(self.disease_genes_updown[0].keys()), list(self.disease_genes_updown[1].keys()), self.drugbank, self.run_name, self.cell_type_name,)
 
 
 def _initialize_worker_databases(cell_lines=None):
@@ -400,40 +463,338 @@ class ConsensusRanker:
     def _borda_rank(self, ranked_lists):
         if not ranked_lists:
             return pd.DataFrame(columns=["DrugBank_ID", "Borda_Score"])
-
-        unique_drugs = set()
-        for lst in ranked_lists:
-            unique_drugs.update(lst)
-            
-        max_score = len(unique_drugs)
-        
-        if max_score == 0:
-            return pd.DataFrame(columns=["DrugBank_ID", "Borda_Score"])
-
+    
         borda_scores = {}
-        
+    
         for lst in ranked_lists:
+            L = len(lst)
+            if L == 0:
+                continue
             for rank_index, drug_id in enumerate(lst):
-                points = max_score - rank_index 
-                
-
-                borda_scores[drug_id] = borda_scores.get(drug_id, 0) + points
-
-        results_df = pd.DataFrame(list(borda_scores.items()), columns=["DrugBank_ID", "Borda_Score"])
-        
-        results_df.sort_values(
-            by="Borda_Score", 
-            ascending=False, 
-            inplace=True, 
-            ignore_index=True
+                points = (L - rank_index) / L          
+                borda_scores[drug_id] = borda_scores.get(drug_id, 0.0) + points
+    
+        if not borda_scores:
+            return pd.DataFrame(columns=["DrugBank_ID", "Borda_Score"])
+    
+        results_df = pd.DataFrame(
+            list(borda_scores.items()), columns=["DrugBank_ID", "Borda_Score"]
         )
-        
+        results_df.sort_values(
+            by="Borda_Score", ascending=False, inplace=True, ignore_index=True
+        )
         return results_df
 
+    def _collect_cell_type_predictions(self):
+        """
+        Build reverse index:
+        DrugBank_ID -> set(cell_type_names_that_predicted_it)
+        """
+        predictions = defaultdict(set)
+
+        for consensus_file in self.dir_path.glob("consensus_ALL_DATASETS_*.csv"):
+            cell_type = consensus_file.stem.replace("consensus_ALL_DATASETS_", "")
+            cell_consensus_df = pd.read_csv(consensus_file)
+
+            if "DrugBank_ID" not in cell_consensus_df.columns:
+                continue
+
+            for drug_id in cell_consensus_df["DrugBank_ID"].dropna():
+                predictions[str(drug_id)].add(cell_type)
+
+        return predictions
+
+    @staticmethod
+    def _serialize_targets(drug):
+        target_rows = []
+        raw_targets = getattr(drug, "targets", ()) if drug is not None else ()
+
+        for target in raw_targets:
+            target_type = getattr(target, "type", "")
+            organism = getattr(target, "organism", "")
+            actions = tuple(action for action in getattr(target, "drug_actions", ()) if action)
+            actions_text = ", ".join(actions) if actions else "N/A"
+            symbol = getattr(target, "symbol", None) or "N/A"
+            name = getattr(target, "name", None) or "N/A"
+            cellular_location = getattr(target, "cellular_location", None) or "N/A"
+            target_id = getattr(target, "id", None) or "N/A"
+            swiss_prot_id = getattr(target, "swiss_prot_id", None) or "N/A"
+
+            target_rows.append(
+                {
+                    "symbol": symbol,
+                    "name": name,
+                    "actions": actions_text,
+                    "organism": organism if organism else "N/A",
+                    "type": target_type if target_type else "N/A",
+                    "cellular_location": cellular_location,
+                    "target_id": target_id,
+                    "swiss_prot_id": swiss_prot_id,
+                }
+            )
+
+        human_protein_rows = [
+            row
+            for row in target_rows
+            if row["type"] == "protein" and row["organism"] == "Humans"
+        ]
+
+        return target_rows, human_protein_rows
+
+    @staticmethod
+    def _format_targets_summary(human_protein_rows, max_items=12):
+        if not human_protein_rows:
+            return ""
+
+        summary_items = []
+        for row in human_protein_rows:
+            symbol = row["symbol"]
+            actions = row["actions"]
+            summary_items.append(f"{symbol} ({actions})")
+
+        unique_items = list(dict.fromkeys(summary_items))
+        if len(unique_items) > max_items:
+            return ", ".join(unique_items[:max_items]) + ", ..."
+
+        return ", ".join(unique_items)
+
+    @staticmethod
+    def _format_targets_full_text(target_rows):
+        if not target_rows:
+            return ""
+
+        lines = []
+        for idx, row in enumerate(target_rows, start=1):
+            lines.append(
+                (
+                    f"{idx}. {row['symbol']} | {row['name']} | "
+                    f"type={row['type']} | organism={row['organism']} | "
+                    f"actions={row['actions']} | location={row['cellular_location']} | "
+                    f"target_id={row['target_id']} | swiss_prot_id={row['swiss_prot_id']}"
+                )
+            )
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def _format_targets_html(target_rows):
+        if not target_rows:
+            return "<div class='muted'>No targets available</div>"
+
+        cards = []
+        for row in target_rows:
+            cards.append(
+                (
+                    "<div class='target-card'>"
+                    f"<div><b>{escape(str(row['symbol']))}</b> - {escape(str(row['name']))}</div>"
+                    f"<div>Actions: {escape(str(row['actions']))}</div>"
+                    f"<div>Type: {escape(str(row['type']))} | Organism: {escape(str(row['organism']))}</div>"
+                    f"<div>Location: {escape(str(row['cellular_location']))}</div>"
+                    f"<div>Target ID: {escape(str(row['target_id']))} | UniProt: {escape(str(row['swiss_prot_id']))}</div>"
+                    "</div>"
+                )
+            )
+
+        return "".join(cards)
+
+    def generate_master_report(self, hd_trial_ids=None):
+        """
+        Build enriched CSV and HTML report for MASTER_DRUG_RANKINGS.csv.
+        """
+        if hd_trial_ids is None:
+            hd_trial_ids = HD_CLINICAL_TRIAL_DRUGBANK_IDS
+
+        master_path = self.dir_path / "MASTER_DRUG_RANKINGS.csv"
+        if not master_path.exists():
+            self.log.error("Cannot render report: %s does not exist", master_path)
+            return
+
+        master_df = pd.read_csv(master_path).copy()
+        if "DrugBank_ID" not in master_df.columns or "Borda_Score" not in master_df.columns:
+            self.log.error("MASTER_DRUG_RANKINGS.csv missing required columns")
+            return
+
+        cell_type_predictions = self._collect_cell_type_predictions()
+
+        try:
+            drugbank = databases.DrugBank()
+        except Exception as exc:
+            self.log.error("Could not initialize DrugBank for enrichment: %s", exc)
+            return
+
+        enriched_rows = []
+        for rank, row in enumerate(master_df.itertuples(index=False), start=1):
+            drug_id = str(row.DrugBank_ID)
+            borda_score = row.Borda_Score
+
+            try:
+                drug = drugbank.search(drug_id)
+            except Exception:
+                drug = None
+
+            drug_name = getattr(drug, "name", "Unknown")
+            indication = getattr(drug, "indication", "")
+            mechanism = getattr(drug, "mechanism_of_action", "")
+            drug_groups = tuple(group for group in getattr(drug, "groups", ()) if group)
+            drug_groups_text = ", ".join(drug_groups)
+            is_approved = "approved" in {group.lower() for group in drug_groups}
+
+            target_rows, human_protein_rows = self._serialize_targets(drug)
+            targets_summary = self._format_targets_summary(human_protein_rows)
+            targets_full_text = self._format_targets_full_text(target_rows)
+            targets_html = self._format_targets_html(target_rows)
+
+            predicted_cell_types = sorted(cell_type_predictions.get(drug_id, set()))
+            predicted_cell_types_text = ", ".join(predicted_cell_types)
+
+            enriched_rows.append(
+                {
+                    "Rank": rank,
+                    "DrugBank_ID": drug_id,
+                    "DrugBank_Name": drug_name,
+                    "Borda_Score": borda_score,
+                    "Approved": is_approved,
+                    "Drug_Groups": drug_groups_text,
+                    "HD_Clinical_Trial": drug_id in hd_trial_ids,
+                    "Predicted_Cell_Types": predicted_cell_types_text,
+                    "Predicted_Cell_Type_Count": len(predicted_cell_types),
+                    "Target_Count": len(target_rows),
+                    "Human_Protein_Target_Count": len(human_protein_rows),
+                    "Targets_Summary": targets_summary,
+                    "Indication": indication,
+                    "Mechanism_Of_Action": mechanism,
+                    "Targets_Full": targets_full_text,
+                    "_targets_html": targets_html,
+                }
+            )
+
+        enriched_df = pd.DataFrame(enriched_rows)
+        enriched_csv_path = self.dir_path / "MASTER_DRUG_RANKINGS_enriched.csv"
+        html_report_path = self.dir_path / "MASTER_DRUG_RANKINGS_report.html"
+
+        csv_columns = [column for column in enriched_df.columns if not column.startswith("_")]
+        enriched_df[csv_columns].to_csv(enriched_csv_path, index=False)
+
+        total_drugs = len(enriched_df)
+        hd_trial_count = int(enriched_df["HD_Clinical_Trial"].sum())
+        hd_trial_percent = (100.0 * hd_trial_count / total_drugs) if total_drugs else 0.0
+
+        html_rows = []
+        for row in enriched_rows:
+            details_block = (
+                "<details><summary>View target details</summary>"
+                f"{row['_targets_html']}"
+                "</details>"
+            )
+            html_rows.append(
+                (
+                    "<tr>"
+                    f"<td>{row['Rank']}</td>"
+                    f"<td>{escape(str(row['DrugBank_ID']))}</td>"
+                    f"<td>{escape(str(row['DrugBank_Name']))}</td>"
+                    f"<td>{row['Borda_Score']}</td>"
+                    f"<td>{'Yes' if row['Approved'] else 'No'}</td>"
+                    f"<td>{escape(str(row['Drug_Groups']))}</td>"
+                    f"<td>{'Yes' if row['HD_Clinical_Trial'] else 'No'}</td>"
+                    f"<td>{row['Predicted_Cell_Type_Count']}</td>"
+                    f"<td>{escape(str(row['Predicted_Cell_Types']))}</td>"
+                    f"<td>{row['Target_Count']}</td>"
+                    f"<td>{escape(str(row['Targets_Summary']))}</td>"
+                    f"<td>{details_block}</td>"
+                    "</tr>"
+                )
+            )
+
+        html_page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MASTER Drug Rankings Report</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; margin: 16px; line-height: 1.4; }}
+    h1 {{ margin-bottom: 8px; }}
+    .summary {{ display: flex; gap: 24px; margin-bottom: 16px; flex-wrap: wrap; }}
+    .card {{ border: 1px solid #ddd; border-radius: 8px; padding: 10px 12px; min-width: 180px; }}
+    .label {{ color: #555; font-size: 0.9rem; }}
+    .value {{ font-size: 1.25rem; font-weight: bold; }}
+    #searchBox {{ width: 100%; max-width: 600px; padding: 8px; margin: 8px 0 16px 0; }}
+    table {{ width: 100%; border-collapse: collapse; font-size: 0.9rem; }}
+    th, td {{ border: 1px solid #ddd; padding: 8px; vertical-align: top; }}
+    th {{ position: sticky; top: 0; background: #f7f7f7; z-index: 1; text-align: left; }}
+    tr:nth-child(even) {{ background: #fcfcfc; }}
+    .target-card {{ border: 1px solid #eee; border-radius: 6px; padding: 8px; margin: 6px 0; }}
+    .muted {{ color: #666; }}
+  </style>
+</head>
+<body>
+  <h1>MASTER Drug Rankings</h1>
+  <div class="summary">
+    <div class="card">
+      <div class="label">Total Drugs</div>
+      <div class="value">{total_drugs}</div>
+    </div>
+    <div class="card">
+      <div class="label">HD Clinical-Trial Drugs</div>
+      <div class="value">{hd_trial_count}</div>
+    </div>
+    <div class="card">
+      <div class="label">HD Clinical-Trial %</div>
+      <div class="value">{hd_trial_percent:.1f}%</div>
+    </div>
+  </div>
+
+  <input id="searchBox" type="text" placeholder="Filter rows (DrugBank ID, name, targets, or cell types)..." />
+
+  <table id="resultsTable">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>DrugBank ID</th>
+        <th>Drug Name</th>
+        <th>Borda Score</th>
+        <th>Approved</th>
+        <th>Drug Groups</th>
+        <th>HD Trial</th>
+        <th>Cell Type Count</th>
+        <th>Predicted Cell Types</th>
+        <th>Target Count</th>
+        <th>Target Summary</th>
+        <th>Target Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {''.join(html_rows)}
+    </tbody>
+  </table>
+
+  <script>
+    const searchBox = document.getElementById("searchBox");
+    const table = document.getElementById("resultsTable");
+    const rows = Array.from(table.querySelectorAll("tbody tr"));
+
+    searchBox.addEventListener("input", function () {{
+      const query = this.value.toLowerCase();
+      rows.forEach((row) => {{
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(query) ? "" : "none";
+      }});
+    }});
+  </script>
+</body>
+</html>
+"""
+        html_report_path.write_text(html_page, encoding="utf-8")
+
+        self.log.info("Wrote enriched report CSV: %s", enriched_csv_path)
+        self.log.info("Wrote enriched report HTML: %s", html_report_path)
+
     def rank(self):
-        dataset_folders = [dataset for dataset in dir_path.iterdir() if dataset.is_dir()]
+        dataset_folders = [dataset for dataset in self.dir_path.iterdir() if dataset.is_dir()]
 
         cell_type_groups = defaultdict(list)
+
+        print(dataset_folders)
 
         for dataset in dataset_folders:
             cell_type_folders = [cell_type for cell_type in dataset.iterdir() if cell_type.is_dir()]
@@ -482,6 +843,7 @@ class ConsensusRanker:
             master_consensus = self._borda_rank(all_cell_type_consensus_lists)
             master_consensus.to_csv(self.dir_path / "MASTER_DRUG_RANKINGS.csv", index=False)
             self.log.info(f"Ranking complete! Check {self.dir_path / 'MASTER_DRUG_RANKINGS.csv'}")
+            self.generate_master_report()
         else:
             self.log.error("No data found to rank.")
 
@@ -528,16 +890,22 @@ def gather_run_configs():
         "What is the directory of the folder containing the datasets for analysis? "
     )
 
+    directional = input("Are you using directional genes as input? (y/n)")
+
+    while directional not in ["y", "n"]:
+        directional = input("Are you using directional genes as input? (y/n)")
+
     return {
         "first_time": first_time,
         "run_name": run_name,
         "cell_lines": cell_lines,
         "dataset_directory": dataset_directory,
         "mode": mode,
+        "directional": directional,
     }
 
 
-def generate_worker_jobs(run_name, cell_lines, datasets):
+def generate_worker_jobs(run_name, cell_lines, datasets, directional):
     """
     Helper Method for Generating Worker Job Dictionaries
     """
@@ -551,6 +919,7 @@ def generate_worker_jobs(run_name, cell_lines, datasets):
                 "cell_type_name": dataset.stem,
                 "cell_lines": cell_lines,
                 "dataset_path": dataset,
+                "directional": directional,
             }
         )
 
@@ -580,8 +949,26 @@ if __name__ == "__main__":
         help="Use interactive console to initialize analysis",
         dest="init",
     )
+    parser.add_argument(
+        "--render-report",
+        action="store_true",
+        help="Generate MASTER_DRUG_RANKINGS enriched CSV + HTML report",
+        dest="render_report",
+    )
+    parser.add_argument(
+        "--results-dir",
+        type=str,
+        default="data/results",
+        help="Directory containing MASTER_DRUG_RANKINGS.csv and consensus_ALL_DATASETS_*.csv",
+        dest="results_dir",
+    )
 
     args = parser.parse_args()
+
+    if args.render_report:
+        ranker = ConsensusRanker(Path(args.results_dir))
+        ranker.generate_master_report()
+        raise SystemExit(0)
 
     if args.init:
         run_config = gather_run_configs()
@@ -627,7 +1014,7 @@ if __name__ == "__main__":
                     datasets_paths.append(gene_file_path)
 
             worker_jobs = generate_worker_jobs(
-                run_config["run_name"], run_config["cell_lines"], datasets_paths
+                run_config["run_name"], run_config["cell_lines"], datasets_paths, run_config["directional"],
             )
 
             pipeline = EnsemblePipeline(worker_jobs)
