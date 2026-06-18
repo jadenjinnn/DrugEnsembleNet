@@ -123,9 +123,14 @@ class MultitoolAnalysis:
         if self.directional:
             self.disease_genes_updown = self._get_genes_from_directory_updown(dataset_path)
 
-    def _get_promising_drug_candidates(self, results_df, drugbank):
+    def _get_promising_drug_candidates(self, results_df, drugbank, rank_by_nes=False):
         """
-        Applies PPI network generated to find likely drug candidates
+        Applies PPI network generated to find likely drug candidates.
+
+        rank_by_nes: rank candidates by enrichment effect size |NES| instead of FDR.
+        Used for iGSEA, whose permutation FDR saturates (~70% of candidates tie at the
+        floor), so FDR cannot order them; |NES| is continuous and recovers the ranking.
+        FDR < 0.25 is still applied as the inclusion filter regardless.
         """
 
         if results_df is None or results_df.empty:
@@ -182,26 +187,36 @@ class MultitoolAnalysis:
             self.log.warning("No promising drug candidates found for %s", self.cell_type_name)
             return None
 
-        promising_drug_candidates = promising_drug_candidates[
-            [
-                "DrugBank_ID",
-                "DrugBank_Name",
-                "Indication",
-                "Targets",
-                "Proximity",
-                # "Normalized_Enrichment_Score",
-                "FDR",
-            ]
-        ].sort_values(
-            by=["FDR", "Proximity"],
-            ascending=True,
-            key=np.vectorize(
-                lambda value: (
-                    0.0 if isinstance(value, str) and "<" in value else float(value)
-                )
-            ),
-            ignore_index=True,
-        )
+        ordered_cols = [
+            "DrugBank_ID",
+            "DrugBank_Name",
+            "Indication",
+            "Targets",
+            "Proximity",
+            "FDR",
+        ]
+
+        if rank_by_nes and "Normalized_Enrichment_Score" in promising_drug_candidates.columns:
+            # FDR is saturated at the permutation floor and cannot order candidates;
+            # sort by enrichment effect size (|NES|) instead (FDR<0.25 already filtered).
+            ordered_cols.insert(5, "Normalized_Enrichment_Score")
+            promising_drug_candidates = (
+                promising_drug_candidates[ordered_cols]
+                .assign(_abs_nes=lambda df: df["Normalized_Enrichment_Score"].abs())
+                .sort_values(by="_abs_nes", ascending=False, ignore_index=True)
+                .drop(columns="_abs_nes")
+            )
+        else:
+            promising_drug_candidates = promising_drug_candidates[ordered_cols].sort_values(
+                by=["FDR", "Proximity"],
+                ascending=True,
+                key=np.vectorize(
+                    lambda value: (
+                        0.0 if isinstance(value, str) and "<" in value else float(value)
+                    )
+                ),
+                ignore_index=True,
+            )
 
         return promising_drug_candidates
 
@@ -343,7 +358,7 @@ class MultitoolAnalysis:
 
         self.log.info("Selecting Promising Drug Candidates using IGSEA Results")
         self.igsea_promising_drug_candidates = self._get_promising_drug_candidates(
-            self.igsea_results, self.drugbank
+            self.igsea_results, self.drugbank, rank_by_nes=True
         )
 
         if self.igsea_promising_drug_candidates is None:

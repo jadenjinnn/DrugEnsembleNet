@@ -1,0 +1,44 @@
+DrugBank_ID,name,has_interactome_target,in_2017_LINCS,n_2017_cells,in_used_cells,bucket,igsea_scored,igsea_selected,l2s2_scored,l2s2_selected,cells_2017
+DB00148,Creatine,True,False,0,False,V_vintage_not_in_2017,False,False,False,False,
+DB00215,Citalopram,True,True,11,False,C_cellline_other_lines_only,False,False,True,False,"A375,A549,HA1E,HCC515,HELA,HEPG2,HT29,MCF7,PC3,VCAP,YAPC"
+DB00289,Atomoxetine,True,True,11,False,C_cellline_other_lines_only,False,False,True,True,"A375,A549,HA1E,HCC515,HELA,HEPG2,HT29,MCF7,PC3,VCAP,YAPC"
+DB00313,Valproic acid,True,True,0,True,A_available_to_iGSEA,True,True,True,True,
+DB00334,Olanzapine,True,True,9,False,C_cellline_other_lines_only,False,False,True,True,"A375,A549,HA1E,HELA,HT29,MCF7,PC3,VCAP,YAPC"
+DB00470,Dronabinol,True,False,0,False,V_vintage_not_in_2017,False,False,False,False,
+DB00514,Dextromethorphan,True,True,16,True,A_available_to_iGSEA,False,False,False,False,"A375,A549,ASC,HA1E,HCC515,HELA,HEPG2,HT29,MCF7,NEU,NPC,PC3,PHH,SKB,VCAP,YAPC"
+DB00734,Risperidone,True,True,17,True,A_available_to_iGSEA,True,True,True,True,"A375,A549,ASC,FIBRNPC,HA1E,HCC515,HELA,HEPG2,HT29,MCF7,NEU,NPC,PC3,PHH,SKB,VCAP,YAPC"
+DB00740,Riluzole,True,True,16,True,A_available_to_iGSEA,True,True,True,True,"A375,A549,ASC,FIBRNPC,HA1E,HCC515,HELA,HEPG2,HT29,MCF7,NEU,NPC,PC3,SKB,VCAP,YAPC"
+DB00908,Quinidine,True,True,17,True,A_available_to_iGSEA,True,True,True,True,"A375,A549,ASC,FIBRNPC,HA1E,HCC515,HELA,HEPG2,HT29,MCF7,NEU,NPC,PC3,PHH,SKB,VCAP,YAPC"
+DB00915,Amantadine,True,True,15,True,A_available_to_iGSEA,True,True,False,False,"A375,A549,ASC,HA1E,HCC515,HELA,HEPG2,HT29,MCF7,NPC,PC3,PHH,SKB,VCAP,YAPC"
+DB01017,Minocycline,True,True,2,False,C_cellline_other_lines_only,False,False,False,False,"MCF7,PC3"
+DB01039,Fenofibrate,True,True,13,True,A_available_to_iGSEA,True,False,False,False,"A375,A549,ASC,HA1E,HCC515,HEPG2,HT29,MCF7,NPC,PC3,PHH,SKB,VCAP"
+DB01043,Memantine,True,True,8,False,C_cellline_other_lines_only,False,False,False,False,"A375,A549,HA1E,HCC515,HT29,MCF7,PC3,VCAP"
+DB01065,Melatonin,True,True,9,False,C_cellline_other_lines_only,False,False,True,True,"A375,A549,HA1E,HCC515,HELA,HT29,MCF7,PC3,YAPC"
+DB01156,Bupropion,True,True,15,True,A_available_to_iGSEA,True,False,False,False,"A375,A549,ASC,HA1E,HCC515,HELA,HEPG2,HT29,MCF7,NPC,PC3,PHH,SKB,VCAP,YAPC"
+DB02709,Resveratrol,True,True,67,True,A_available_to_iGSEA,True,True,True,True,"A375,A549,A673,AGS,ASC,ASC.C,CD34,CL34,CORL23,COV644,DV90,EFO27,FIBRNPC,H1299,HA1E,HCC15,HCC515,HCT116,HEC108,HELA,HEPG2,HME1,HT115,HT29,HUVEC,JHUEM2,LOVO,MCF7,MDST8,NCIH1694,NCIH1836,NCIH2073,NCIH508,NCIH596,NEU,NOMO1,NPC,NPC.CAS9,NPC.TAK,OV7,PC3,PHH,PL21,RKO,RMGI,RMUGS,SKB,SKL,SKL.C,SKLU1,SKM1,SKMEL1,SKMEL28,SNGM,SNU1040,SNUC4,SNUC5,SW480,SW620,SW948,T3M10,THP1,TYKNU,U937,VCAP,WSUDLCL2,YAPC"
+DB04844,Tetrabenazine,True,True,13,True,A_available_to_iGSEA,False,False,True,False,"A375,A549,FIBRNPC,HA1E,HCC515,HELA,HT29,MCF7,NEU,NPC,PC3,VCAP,YAPC"
+DB05565,PBT-1033,True,False,0,False,V_vintage_not_in_2017,False,False,False,False,
+DB06685,Laquinimod,True,False,0,False,V_vintage_not_in_2017,False,False,False,False,
+DB06819,Phenylbutyric acid,True,True,0,True,A_available_to_iGSEA,True,True,False,False,
+DB08387,Mardepodect,True,False,0,False,V_vintage_not_in_2017,False,False,False,False,
+DB08887,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
+DB09270,Ubidecarenone,True,False,0,False,V_vintage_not_in_2017,False,False,False,False,
+DB11340,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
+DB11677,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
+DB11725,Latrepirdine,True,True,8,False,C_cellline_other_lines_only,False,False,True,False,"A375,A549,HCC515,HEPG2,HT29,MCF7,PC3,VCAP"
+DB11915,Valbenazine,True,False,0,False,V_vintage_not_in_2017,False,False,False,False,
+DB11947,Pridopidine,True,False,0,False,V_vintage_not_in_2017,False,False,False,False,
+DB12116,Epigallocatechin gallate,True,True,0,True,A_available_to_iGSEA,True,True,False,False,
+DB12161,Deutetrabenazine,True,True,0,True,A_available_to_iGSEA,True,False,False,False,
+DB13025,Tiapride,True,True,7,False,C_cellline_other_lines_only,False,False,False,False,"A375,HA1E,HELA,HT29,MCF7,PC3,YAPC"
+DB13978,Selisistat,True,True,0,True,A_available_to_iGSEA,True,True,False,False,
+DB14509,Lithium carbonate,True,False,0,False,V_vintage_not_in_2017,False,False,False,False,
+DB15155,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
+DB16968,SRX-246,True,False,0,False,V_vintage_not_in_2017,False,False,False,False,
+DB16975,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
+DB16977,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
+DB17870,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
+DB17924,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
+DB18165,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
+DB21549,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
+DB21645,<unknown>,False,False,0,False,S_structural_no_target,False,False,False,False,
