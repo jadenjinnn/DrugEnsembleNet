@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 from IGSEA import IGSEA
 import l2s2
+import sigcom
 from networkx import from_pandas_edgelist
 from tqdm import tqdm
 
@@ -388,9 +389,21 @@ class MultitoolAnalysis:
 
         self.log.info("Selecting Promising Drug Candidates using L2S2 w/ Directionality")
 
-        if self.directional: 
+        if self.directional:
             if self.disease_genes_updown[0] and self.disease_genes_updown[1]:
-                l2s2.enrich_l2s2_up_down(list(self.disease_genes_updown[0].keys()), list(self.disease_genes_updown[1].keys()), self.drugbank, self.run_name, self.cell_type_name,)
+                up_symbols = list(self.disease_genes_updown[0].keys())
+                down_symbols = list(self.disease_genes_updown[1].keys())
+                l2s2.enrich_l2s2_up_down(up_symbols, down_symbols, self.drugbank, self.run_name, self.cell_type_name,)
+
+                # High-coverage directional (reverser) arm via SigCom LINCS.
+                self.log.info("Selecting Promising Drug Candidates using SigCom LINCS (directional)")
+                try:
+                    name2id = sigcom.build_name2id(self.drugbank)
+                    sigcom.enrich_sigcom_directional(
+                        up_symbols, down_symbols, name2id, self.run_name, self.cell_type_name,
+                    )
+                except Exception as exc:
+                    self.log.error("SigCom directional step failed for %s: %s", self.cell_type_name, exc)
 
 
 def _initialize_worker_databases(cell_lines=None):
@@ -821,6 +834,7 @@ class ConsensusRanker:
                 igsea_path = cell_type_dir / "promising_drug_candidates_igsea.csv"
                 l2s2_path = cell_type_dir / "promising_drug_candidates_l2s2.csv"
                 l2s2_updown_path = cell_type_dir / "promising_drug_candidates_l2s2_updown.csv"
+                sigcom_path = cell_type_dir / "promising_drug_candidates_sigcom.csv"
 
                 cell_tool_lists = []
 
@@ -830,6 +844,8 @@ class ConsensusRanker:
                     cell_tool_lists.append(pd.read_csv(l2s2_path)["DrugBank_ID"].tolist())
                 if l2s2_updown_path.exists():
                     cell_tool_lists.append(pd.read_csv(l2s2_updown_path)["DrugBank_ID"].tolist())
+                if sigcom_path.exists():
+                    cell_tool_lists.append(pd.read_csv(sigcom_path)["DrugBank_ID"].tolist())
 
                 if cell_tool_lists:
                     cell_type_consensus = self._borda_rank(cell_tool_lists,)
